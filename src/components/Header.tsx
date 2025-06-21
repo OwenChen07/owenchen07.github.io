@@ -10,15 +10,15 @@ const Header = () => {
   }, []);
 
   return (
-    <header className={`py-20 px-6 text-center transition-all duration-1000 ${isVisible ? 'animate-fade-in' : 'opacity-0'}`}>
+    <header className={`py-32 px-6 text-center transition-all duration-1000 ${isVisible ? 'animate-fade-in' : 'opacity-0'}`}>
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-5xl md:text-6xl font-computer-modern font-bold mb-6 text-gray-900">
+        <h1 className="text-7xl md:text-8xl font-computer-modern font-bold mb-8 text-gray-900">
           John Doe
         </h1>
-        <p className="text-xl md:text-2xl font-computer-modern text-gray-600 mb-8 leading-relaxed">
+        <p className="text-2xl md:text-3xl font-computer-modern text-gray-600 mb-10 leading-relaxed">
           Computer Science Student
         </p>
-        <p className="text-lg font-computer-modern text-gray-500 mb-12 max-w-2xl mx-auto leading-relaxed">
+        <p className="text-xl font-computer-modern text-gray-500 mb-16 max-w-2xl mx-auto leading-relaxed">
           Passionate about algorithms, artificial intelligence, and building elegant solutions to complex problems.
         </p>
         
