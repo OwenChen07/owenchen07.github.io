@@ -7,13 +7,13 @@ const About: React.FC = () => {
   return (
     <Layout>
       <div className="w-full flex flex-col items-center">
-        <div className="pt-8 md:pt-12 mb-8 w-full max-w-2xl mx-auto">
-          <h1 className="text-5xl md:text-7xl font-bold mb-8 italic border-b border-darkOlive/20 pb-4 text-center">
+        <div className="pt-4 sm:pt-8 md:pt-12 mb-6 sm:mb-8 w-full max-w-2xl mx-auto px-4">
+          <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold mb-6 sm:mb-8 italic border-b border-darkOlive/20 pb-4 text-center">
             About
           </h1>
         </div>
-        <div className="flex justify-center"> 
-          <div className="max-w-2xl text-center space-y-6 text-2xl md:text-3xl leading-relaxed font-light">
+        <div className="flex justify-center px-4"> 
+          <div className="max-w-2xl text-center space-y-4 sm:space-y-6 text-xl sm:text-2xl md:text-3xl leading-relaxed font-light">
             <p>
               Hi I'm Owen, a first year CS student at the <span className="font-bold">University of Waterloo</span>. I'm passionate about software development and machine learning.
             </p>

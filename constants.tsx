@@ -24,24 +24,45 @@ import { Project, Skill } from './types';
 export const PROJECTS: Project[] = [
   {
     id: '1',
-    title: 'Ethereal Commerce',
-    description: 'A headless e-commerce solution built with React and Gemini-driven product descriptions.',
-    tags: ['React', 'Gemini API', 'Tailwind'],
-    link: '#'
+    title: 'Machine Learning Chess Model',
+    description: 'A machine learning model that uses a CNN to play chess',
+    tags: ['ML', 'Python','PyTorch', 'Cloud Computing'],
+    link: 'https://github.com/OwenChen07/ChessHacks'
   },
   {
     id: '2',
-    title: 'ZenTask',
-    description: 'A minimalist productivity application focusing on cognitive load reduction.',
-    tags: ['TypeScript', 'Node.js', 'PostgreSQL'],
-    link: '#'
+    title: 'DataSloth',
+    description: 'A web application that finds datasets with strong correlation to input data',
+    tags: ['Data Science', 'Python', 'Pandas', 'Scikit-Learn'],
+    link: 'https://github.com/OwenChen07/DataSloth'
   },
   {
     id: '3',
-    title: 'FlowState UI',
-    description: 'Design system library focused on accessibility and fluid motion.',
-    tags: ['Framer Motion', 'React', 'Storybook'],
-    link: '#'
+    title: 'ConvoAI',
+    description: 'An AI extension that displays real-time responses to spoken in video meetings',
+    tags: ['LLMs', 'Python','OpenAI API', 'Flask'],
+    link: 'https://github.com/LucasHJin/ConvoAI'
+  },
+  {
+    id: '4',
+    title: 'KCSSC Website',
+    description: 'A dynamic website for a volunteer organization',
+    tags: ['Web Dev', 'Typescript','React', 'PostgreSQL'],
+    link: 'https://staging2.kcssc.org'
+  },
+  {
+    id: '5',
+    title: 'Walky Talky',
+    description: 'A long-distance remote controlled robot',
+    tags: ['Robotics', 'Python','Raspberry Pi', 'SSH'],
+    link: 'https://github.com/OwenChen07/WalkyTalky'
+  },
+  {
+    id: '6',
+    title: 'League of Legends Math Paper',
+    description: 'An investigation into the math behind randomness in League of Legends',
+    tags: ['Math', 'Statistics','Probability', 'NumPy'],
+    link: '/Math%20IA.pdf'
   }
 ];
 

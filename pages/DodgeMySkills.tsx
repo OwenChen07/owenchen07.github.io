@@ -478,41 +478,43 @@ const DodgeMySkills: React.FC = () => {
   return (
     <Layout>
       <div className="w-full flex flex-col items-center">
-        <div className="pt-8 md:pt-12 mb-8 w-full max-w-2xl mx-auto">
-          <h1 className="text-5xl md:text-7xl font-bold mb-8 italic border-b border-darkOlive/20 pb-4 text-center">
+        <div className="pt-4 sm:pt-8 md:pt-12 mb-6 sm:mb-8 w-full max-w-2xl mx-auto px-4">
+          <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold mb-6 sm:mb-8 italic border-b border-darkOlive/20 pb-4 text-center">
             Skills
           </h1>
         </div>
-        <div className="flex flex-col items-center gap-8">
-        <div className="flex justify-between w-full max-w-[1200px] items-end">
-          <div className="space-y-1">
-            <h2 className="text-xs font-bold tracking-[0.2em] uppercase opacity-50">Score</h2>
-            <p className="text-3xl font-mono">{Math.floor(score / 10)}</p>
+        <div className="flex flex-col items-center gap-6 sm:gap-8 w-full px-4 sm:px-0">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 w-full max-w-[1200px] mx-auto">
+          {/* Row 1: Score and Leaderboard Heading */}
+          <div className="space-y-1 md:col-span-2">
+            <h2 className="text-[10px] sm:text-xs font-bold tracking-[0.2em] uppercase opacity-50">Score</h2>
+            <p className="text-2xl sm:text-3xl font-mono">{Math.floor(score / 10)}</p>
           </div>
-          {/* <p className="text-xs uppercase tracking-widest opacity-40">Use WASD, Arrows, or Mouse to move</p> */}
-        </div>
+          <div className="flex items-end justify-end md:justify-start">
+            <h2 className="text-xl sm:text-2xl font-bold italic">Leaderboard</h2>
+          </div>
 
-        <div className="flex flex-col md:flex-row gap-8 items-start justify-center w-full max-w-[1200px] mx-auto">
-          {/* Game Window */}
-          <div className="flex flex-col items-center gap-4">
-            <div className="relative border-2 border-darkOlive/10 bg-offWhite overflow-hidden">
+          {/* Row 2: Game Window */}
+          <div className="flex flex-col items-center gap-4 w-full md:col-span-2">
+            <div className="relative border-2 border-darkOlive/10 bg-offWhite overflow-hidden w-full max-w-full" style={{ aspectRatio: `${CANVAS_WIDTH} / ${CANVAS_HEIGHT}` }}>
           <canvas 
             ref={canvasRef} 
             width={CANVAS_WIDTH} 
             height={CANVAS_HEIGHT}
-            className="block cursor-none"
+            className="block cursor-none w-full h-full"
+            style={{ maxWidth: '100%', height: 'auto' }}
           />
 
           {(!gameStarted || gameOver) && (
-            <div className="absolute inset-0 bg-offWhite/80 backdrop-blur-sm flex flex-col items-center justify-center p-8 text-center animate-in fade-in duration-500">
+            <div className="absolute inset-0 bg-offWhite/80 backdrop-blur-sm flex flex-col items-center justify-center p-4 sm:p-6 md:p-8 text-center animate-in fade-in duration-500 overflow-y-auto">
               {gameOver ? (
                 <>
-                  <h3 className="text-5xl font-bold mb-4 italic">Defeated</h3>               
-                  <p className="mb-6 text-4xl font-mono">Final Score: {Math.floor(score / 10)}</p>
+                  <h3 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-3 sm:mb-4 italic">Defeated</h3>               
+                  <p className="mb-4 sm:mb-6 text-2xl sm:text-3xl md:text-4xl font-mono">Final Score: {Math.floor(score / 10)}</p>
                   
                   {showNameInput && (
-                    <form onSubmit={handleNameSubmit} className="mb-6 max-w-sm w-full">
-                      <p className="text-sm mb-3 opacity-70">High Score! Enter your initials:</p>
+                    <form onSubmit={handleNameSubmit} className="mb-4 sm:mb-6 max-w-sm w-full px-4">
+                      <p className="text-xs sm:text-sm mb-2 sm:mb-3 opacity-70">High Score! Enter your initials:</p>
                       <input
                         type="text"
                         value={playerName}
@@ -526,14 +528,14 @@ const DodgeMySkills: React.FC = () => {
                         }}
                         placeholder="AA"
                         maxLength={2}
-                        className="w-full px-4 py-2 border border-darkOlive/20 bg-offWhite text-darkOlive mb-3 focus:outline-none focus:border-darkOlive/50 text-center text-2xl font-bold tracking-wider"
+                        className="w-full px-3 sm:px-4 py-2 border border-darkOlive/20 bg-offWhite text-darkOlive mb-2 sm:mb-3 focus:outline-none focus:border-darkOlive/50 text-center text-xl sm:text-2xl font-bold tracking-wider"
                         style={{ textTransform: 'uppercase' }}
                         autoFocus
                       />
                       <button
                         type="submit"
                         disabled={playerName.length !== 2}
-                        className="w-full px-6 py-2 bg-darkOlive text-offWhite hover:bg-opacity-90 transition-all uppercase tracking-[0.2em] text-xs font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full px-4 sm:px-6 py-2 bg-darkOlive text-offWhite hover:bg-opacity-90 transition-all uppercase tracking-[0.2em] text-[10px] sm:text-xs font-bold disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         Submit
                       </button>
@@ -541,18 +543,18 @@ const DodgeMySkills: React.FC = () => {
                   )}
                   
                   {encounteredSkillsList.length > 0 && (
-                    <div className="mb-8 max-w-md">
-                      <h4 className="text-sm font-bold tracking-[0.2em] uppercase opacity-50 mb-4">Skills Encountered</h4>
-                      <div className="flex flex-wrap gap-3 justify-center">
+                    <div className="mb-6 sm:mb-8 max-w-md px-4">
+                      <h4 className="text-xs sm:text-sm font-bold tracking-[0.2em] uppercase opacity-50 mb-3 sm:mb-4">Skills Encountered</h4>
+                      <div className="flex flex-wrap gap-2 sm:gap-3 justify-center">
                         {encounteredSkillsList.map((skillName) => {
                           const skill = SKILLS.find(s => s.name === skillName);
                           return (
                             <div
                               key={skillName}
-                              className="flex items-center gap-2 px-4 py-2 border border-darkOlive/20 bg-offWhite/50"
+                              className="flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 border border-darkOlive/20 bg-offWhite/50"
                             >
                               {skill?.icon}
-                              <span className="text-sm font-medium">{skillName}</span>
+                              <span className="text-xs sm:text-sm font-medium">{skillName}</span>
                             </div>
                           );
                         })}
@@ -563,12 +565,12 @@ const DodgeMySkills: React.FC = () => {
               ) : (
                 <>
                   {/* <h3 className="text-5xl font-bold mb-4 italic">Skills</h3> */}
-                  <p className="text-lg mb-8 opacity-70 max-w-md">Dodge my skills using WASD, arrow keys, or your mouse.</p>
+                  <p className="text-sm sm:text-base md:text-lg mb-6 sm:mb-8 opacity-70 max-w-md px-4">Dodge my skills using WASD, arrow keys, or your mouse.</p>
                 </>
               )}
               <button 
                 onClick={handleStartGame}
-                className="px-12 py-4 bg-darkOlive text-offWhite hover:bg-opacity-90 hover:scale-105 transition-all uppercase tracking-[0.3em] text-xs font-bold"
+                className="px-8 sm:px-12 py-3 sm:py-4 bg-darkOlive text-offWhite hover:bg-opacity-90 hover:scale-105 transition-all uppercase tracking-[0.3em] text-[10px] sm:text-xs font-bold"
               >
                 {gameOver ? 'Try Again' : 'Play'}
               </button>
@@ -577,39 +579,29 @@ const DodgeMySkills: React.FC = () => {
             </div>
           </div>
 
-          {/* Leaderboard Section */}
-          <div className="w-full md:w-80 flex-shrink-0">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-2xl font-bold italic">Leaderboard</h2>
-              {/* <button
-                onClick={() => setShowLeaderboard(!showLeaderboard)}
-                className="text-xs uppercase tracking-[0.2em] opacity-60 hover:opacity-100 transition-opacity"
-              >
-                {showLeaderboard ? 'Hide' : 'Show'}
-              </button> */}
-            </div>
-            
-            <div className="border border-darkOlive/10 bg-offWhite/50 p-6">
+          {/* Row 2: Leaderboard Box */}
+          <div className="w-full flex flex-col">
+            <div className="border border-darkOlive/10 bg-offWhite/50 p-4 sm:p-6 flex-1">
               {leaderboard.length === 0 ? (
-                <p className="text-center text-sm opacity-60 py-8">No scores yet. Be the first!</p>
+                <p className="text-center text-xs sm:text-sm opacity-60 py-6 sm:py-8">No scores yet. Be the first!</p>
               ) : (
                 <div className="space-y-1">
                   {leaderboard.slice(0, 10).map((entry, index) => (
                     <div
                       key={`${entry.timestamp}-${index}`}
-                      className="flex items-center justify-between py-1 border-b border-darkOlive/10 last:border-0"
+                      className="flex items-center justify-between py-1 sm:py-1.5 border-b border-darkOlive/10 last:border-0"
                     >
-                        <div className="flex items-center gap-4">
-                          <span className="text-sm font-bold opacity-50 w-6 text-right">
+                        <div className="flex items-center gap-2 sm:gap-4">
+                          <span className="text-xs sm:text-sm font-bold opacity-50 w-5 sm:w-6 text-right">
                             {index + 1}
                           </span>
                           <div>
-                            <p className="font-medium">{entry.name}</p>
-                            <p className="text-xs opacity-50">{formatDate(entry.timestamp)}</p>
+                            <p className="text-sm sm:text-base font-medium">{entry.name}</p>
+                            <p className="text-[10px] sm:text-xs opacity-50">{formatDate(entry.timestamp)}</p>
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="text-lg font-mono font-bold">{entry.score}</p>
+                          <p className="text-base sm:text-lg font-mono font-bold">{entry.score}</p>
                           {/* {entry.skillsEncountered.length > 0 && (
                             <p className="text-xs opacity-50">{entry.skillsEncountered.length} skills</p>
                           )} */}
