@@ -16,18 +16,8 @@ const Home: React.FC = () => {
             <Link to="/about" className="hover:opacity-60 transition-opacity">About</Link>
             <Link to="/projects" className="hover:opacity-60 transition-opacity">Projects</Link>
             <Link to="/contact" className="hover:opacity-60 transition-opacity">Contact</Link>
+            <Link to="/dodge-my-skills" className="hover:opacity-60 transition-opacity">Skills</Link>
           </nav>
-
-          <Link 
-            to="/dodge-my-skills" 
-            className="group relative px-10 py-4 overflow-hidden border border-darkOlive bg-darkOlive text-offWhite mt-4 transition-all hover:pr-14"
-          >
-            <span className="relative z-10 font-bold tracking-[0.25em] uppercase text-[10px]">Skills</span>
-            <div className="absolute inset-0 bg-offWhite translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
-            <span className="absolute inset-0 z-20 flex items-center justify-center text-darkOlive opacity-0 group-hover:opacity-100 transition-opacity duration-300 font-bold tracking-[0.25em] uppercase text-[10px]">
-              Play Game
-            </span>
-          </Link>
         </div>
       </div>
       

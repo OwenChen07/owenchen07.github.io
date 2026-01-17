@@ -32,3 +32,10 @@ export interface Projectile extends GameEntity {
 export interface Player extends GameEntity {
   speed: number;
 }
+
+export interface LeaderboardEntry {
+  name: string;
+  score: number;
+  timestamp: number;
+  skillsEncountered: string[];
+}

@@ -2,7 +2,8 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import Layout from '../components/Layout';
 import { SKILLS, SKILL_LOGOS } from '../constants';
-import { Projectile, Player } from '../types';
+import { Projectile, Player, LeaderboardEntry } from '../types';
+import { getTopEntries, saveLeaderboardEntry, isHighScore, formatDate } from '../utils/leaderboard';
 
 // ============================================
 // GAME CONSTANTS - Edit values here
@@ -36,6 +37,10 @@ const DodgeMySkills: React.FC = () => {
   const [gameOver, setGameOver] = useState(false);
   const [gameStarted, setGameStarted] = useState(false);
   const [encounteredSkills, setEncounteredSkills] = useState<Set<string>>(new Set());
+  const [playerName, setPlayerName] = useState('');
+  const [showNameInput, setShowNameInput] = useState(false);
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [loadingLeaderboard, setLoadingLeaderboard] = useState(true);
   
   // Game State Refs (to avoid re-renders during loop)
   const playerRef = useRef<Player>({
@@ -317,13 +322,24 @@ const DodgeMySkills: React.FC = () => {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Prevent default for arrow keys to avoid scrolling
-      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'W', 'a', 'A', 's', 'S', 'd', 'D'].includes(e.key)) {
+      // Don't capture keys if user is typing in an input/textarea
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
+        return;
+      }
+      
+      // Prevent default for arrow keys to avoid scrolling (only when game is active)
+      if (gameStartedRef.current && !gameOverRef.current && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'W', 'a', 'A', 's', 'S', 'd', 'D'].includes(e.key)) {
         e.preventDefault();
       }
       keysRef.current[e.key] = true;
     };
     const handleKeyUp = (e: KeyboardEvent) => {
+      // Don't capture keys if user is typing in an input/textarea
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
+        return;
+      }
       keysRef.current[e.key] = false;
     };
     
@@ -397,7 +413,67 @@ const DodgeMySkills: React.FC = () => {
     animationFrameRef.current = requestAnimationFrame(update);
   };
 
-  const encounteredSkillsList = Array.from(encounteredSkills).sort();
+  const encounteredSkillsList: string[] = Array.from(encounteredSkills).sort() as string[];
+
+  // Check if score is a high score when game ends
+  useEffect(() => {
+    const checkHighScore = async () => {
+      if (gameOver && score > 0) {
+        const displayScore = Math.floor(score / 10);
+        const isHigh = await isHighScore(displayScore);
+        if (isHigh) {
+          setShowNameInput(true);
+        }
+      }
+    };
+    checkHighScore();
+  }, [gameOver, score]);
+
+  // Load leaderboard when component mounts
+  useEffect(() => {
+    const loadLeaderboard = async () => {
+      setLoadingLeaderboard(true);
+      try {
+        const entries = await getTopEntries();
+        setLeaderboard(entries);
+      } catch (error) {
+        console.error('Error loading leaderboard:', error);
+      } finally {
+        setLoadingLeaderboard(false);
+      }
+    };
+    loadLeaderboard();
+  }, []);
+
+  const handleNameSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    // Validate: must be exactly 2 letters
+    const initials = playerName.trim().toUpperCase();
+    if (initials.length === 2 && /^[A-Z]{2}$/.test(initials)) {
+      const displayScore = Math.floor(score / 10);
+      try {
+        await saveLeaderboardEntry({
+          name: initials,
+          score: displayScore,
+          timestamp: Date.now(),
+          skillsEncountered: encounteredSkillsList,
+        });
+        // Reload leaderboard after saving
+        const entries = await getTopEntries();
+        setLeaderboard(entries);
+        setShowNameInput(false);
+        setPlayerName('');
+      } catch (error) {
+        console.error('Error saving leaderboard entry:', error);
+      }
+    }
+  };
+
+  const handleStartGame = () => {
+    setShowNameInput(false);
+    setPlayerName('');
+    startGame();
+  };
 
   return (
     <Layout>
@@ -408,15 +484,18 @@ const DodgeMySkills: React.FC = () => {
           </h1>
         </div>
         <div className="flex flex-col items-center gap-8">
-        <div className="flex justify-between w-full max-w-[800px] items-end">
+        <div className="flex justify-between w-full max-w-[1200px] items-end">
           <div className="space-y-1">
             <h2 className="text-xs font-bold tracking-[0.2em] uppercase opacity-50">Score</h2>
             <p className="text-3xl font-mono">{Math.floor(score / 10)}</p>
           </div>
-          <p className="text-xs uppercase tracking-widest opacity-40">Use WASD, Arrows, or Mouse to move</p>
+          {/* <p className="text-xs uppercase tracking-widest opacity-40">Use WASD, Arrows, or Mouse to move</p> */}
         </div>
 
-        <div className="relative border-2 border-darkOlive/10 bg-offWhite overflow-hidden">
+        <div className="flex flex-col md:flex-row gap-8 items-start justify-center w-full max-w-[1200px] mx-auto">
+          {/* Game Window */}
+          <div className="flex flex-col items-center gap-4">
+            <div className="relative border-2 border-darkOlive/10 bg-offWhite overflow-hidden">
           <canvas 
             ref={canvasRef} 
             width={CANVAS_WIDTH} 
@@ -430,6 +509,36 @@ const DodgeMySkills: React.FC = () => {
                 <>
                   <h3 className="text-5xl font-bold mb-4 italic">Defeated</h3>               
                   <p className="mb-6 text-4xl font-mono">Final Score: {Math.floor(score / 10)}</p>
+                  
+                  {showNameInput && (
+                    <form onSubmit={handleNameSubmit} className="mb-6 max-w-sm w-full">
+                      <p className="text-sm mb-3 opacity-70">High Score! Enter your initials:</p>
+                      <input
+                        type="text"
+                        value={playerName}
+                        onChange={(e) => {
+                          // Only allow letters and limit to 2 characters
+                          const inputValue = e.target.value;
+                          const filteredValue = inputValue.replace(/[^a-zA-Z]/g, '');
+                          const upperValue = filteredValue.toUpperCase();
+                          const limitedValue = upperValue.slice(0, 2);
+                          setPlayerName(limitedValue);
+                        }}
+                        placeholder="AA"
+                        maxLength={2}
+                        className="w-full px-4 py-2 border border-darkOlive/20 bg-offWhite text-darkOlive mb-3 focus:outline-none focus:border-darkOlive/50 text-center text-2xl font-bold tracking-wider"
+                        style={{ textTransform: 'uppercase' }}
+                        autoFocus
+                      />
+                      <button
+                        type="submit"
+                        disabled={playerName.length !== 2}
+                        className="w-full px-6 py-2 bg-darkOlive text-offWhite hover:bg-opacity-90 transition-all uppercase tracking-[0.2em] text-xs font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Submit
+                      </button>
+                    </form>
+                  )}
                   
                   {encounteredSkillsList.length > 0 && (
                     <div className="mb-8 max-w-md">
@@ -458,13 +567,59 @@ const DodgeMySkills: React.FC = () => {
                 </>
               )}
               <button 
-                onClick={startGame}
+                onClick={handleStartGame}
                 className="px-12 py-4 bg-darkOlive text-offWhite hover:bg-opacity-90 hover:scale-105 transition-all uppercase tracking-[0.3em] text-xs font-bold"
               >
                 {gameOver ? 'Try Again' : 'Play'}
               </button>
             </div>
           )}
+            </div>
+          </div>
+
+          {/* Leaderboard Section */}
+          <div className="w-full md:w-80 flex-shrink-0">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-2xl font-bold italic">Leaderboard</h2>
+              {/* <button
+                onClick={() => setShowLeaderboard(!showLeaderboard)}
+                className="text-xs uppercase tracking-[0.2em] opacity-60 hover:opacity-100 transition-opacity"
+              >
+                {showLeaderboard ? 'Hide' : 'Show'}
+              </button> */}
+            </div>
+            
+            <div className="border border-darkOlive/10 bg-offWhite/50 p-6">
+              {leaderboard.length === 0 ? (
+                <p className="text-center text-sm opacity-60 py-8">No scores yet. Be the first!</p>
+              ) : (
+                <div className="space-y-1">
+                  {leaderboard.slice(0, 10).map((entry, index) => (
+                    <div
+                      key={`${entry.timestamp}-${index}`}
+                      className="flex items-center justify-between py-1 border-b border-darkOlive/10 last:border-0"
+                    >
+                        <div className="flex items-center gap-4">
+                          <span className="text-sm font-bold opacity-50 w-6 text-right">
+                            {index + 1}
+                          </span>
+                          <div>
+                            <p className="font-medium">{entry.name}</p>
+                            <p className="text-xs opacity-50">{formatDate(entry.timestamp)}</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-lg font-mono font-bold">{entry.score}</p>
+                          {/* {entry.skillsEncountered.length > 0 && (
+                            <p className="text-xs opacity-50">{entry.skillsEncountered.length} skills</p>
+                          )} */}
+                        </div>
+                      </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
         </div>
       </div>
