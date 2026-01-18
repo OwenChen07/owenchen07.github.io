@@ -13,14 +13,14 @@ const Projects: React.FC = () => {
             Projects
           </h1>
         </div>
-        <div className="grid gap-8 sm:gap-12 max-w-5xl w-full px-4 sm:px-0">
+        <div className="grid gap-4 sm:gap-6 max-w-5xl w-full px-4 sm:px-0">
         {PROJECTS.map((project, index) => (
           <a 
             key={project.id} 
             href={project.link}
             target="_blank"
             rel="noopener noreferrer"
-            className="group block border-b border-darkOlive/10 dark:border-offWhite/10 pb-8 sm:pb-12 hover:border-darkOlive dark:hover:border-offWhite transition-colors cursor-pointer"
+            className="group block border-b border-darkOlive/10 dark:border-offWhite/10 pb-4 sm:pb-6 hover:border-darkOlive dark:hover:border-offWhite transition-colors cursor-pointer"
           >
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6">
               <div className="space-y-3 sm:space-y-4">

@@ -11,3 +11,75 @@ git add .
 git commit -m "Deploy"
 git push origin main
 npm run restore-dev  # Restores source index.html for dev
+
+# index.html file
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Owen Chen</title>
+    <link rel="icon" type="image/png" href="/oc.png" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #FDFAF5;
+            color: #52543e;
+            overflow-x: hidden;
+        }
+        h1, h2, h3 {
+            font-family: 'Playfair+Display', serif;
+        }
+        .no-scroll {
+            height: 100vh;
+            overflow: hidden;
+        }
+        ::selection {
+            background-color: #52543e;
+            color: #FDFAF5;
+        }
+        .dark ::selection {
+            background-color: #FDFAF5;
+            color: #52543e;
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        offWhite: '#FDFAF5',
+                        darkOlive: '#52543e',
+                    }
+                }
+            }
+        }
+    </script>
+
+
+
+<script type="importmap">
+{
+  "imports": {
+    "react-router-dom": "https://esm.sh/react-router-dom@^7.12.0",
+    "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "react": "https://esm.sh/react@^19.2.3",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/"
+  }
+}
+</script>
+</head>
+<body>
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+</body>
+</html>
+

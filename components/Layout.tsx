@@ -23,7 +23,7 @@ const Layout: React.FC<LayoutProps> = ({ children, hideNav = false }) => {
               to="/" 
               className="flex items-center gap-2 text-xs sm:text-sm font-medium tracking-widest uppercase hover:opacity-60 transition-opacity"
             >
-              <MoveLeft size={14} className="sm:w-4 sm:h-4" />
+              <MoveLeft size={18} className="sm:w-6 sm:h-6" />
               Home
             </Link>
           ) : <div></div>}
@@ -42,7 +42,7 @@ const Layout: React.FC<LayoutProps> = ({ children, hideNav = false }) => {
                 className="p-2 hover:opacity-60 transition-opacity"
                 aria-label="Toggle dark mode"
               >
-                {isDark ? <Sun size={16} className="sm:w-5 sm:h-5" /> : <Moon size={16} className="sm:w-5 sm:h-5" />}
+                {isDark ? <Sun size={18} className="sm:w-6 sm:h-6" /> : <Moon size={18} className="sm:w-6 sm:h-6" />}
               </button>
             </div>
           )}

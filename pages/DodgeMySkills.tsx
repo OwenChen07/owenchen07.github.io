@@ -151,7 +151,12 @@ const DodgeMySkills: React.FC = () => {
   }, []); // No dependencies - uses scoreRef.current for current score
 
   const update = useCallback(() => {
-    if (gameOverRef.current || !gameStartedRef.current) return;
+    if (gameOverRef.current || !gameStartedRef.current) {
+      // Double-check: clear input state if game is not active
+      mouseRef.current = null;
+      keysRef.current = {};
+      return;
+    }
 
     // Move Player
     const p = playerRef.current;
@@ -174,6 +179,11 @@ const DodgeMySkills: React.FC = () => {
       mouseRef.current = null;
     } else if (mouseRef.current) {
       // Mouse movement only when no keyboard input
+      // Double-check game is still active before processing mouse movement
+      if (gameOverRef.current || !gameStartedRef.current) {
+        mouseRef.current = null;
+        return;
+      }
       const dx = mouseRef.current.x - p.x;
       const dy = mouseRef.current.y - p.y;
       const distance = Math.sqrt(dx * dx + dy * dy);
@@ -200,6 +210,9 @@ const DodgeMySkills: React.FC = () => {
       if (dist < proj.radius + p.radius - 5) {
         gameOverRef.current = true;
         setGameOver(true);
+        // Clear all input state when game ends
+        mouseRef.current = null;
+        keysRef.current = {};
       }
     });
 
@@ -333,8 +346,15 @@ const DodgeMySkills: React.FC = () => {
         return;
       }
       
+      // Only process game keys when game is active
+      if (!gameStartedRef.current || gameOverRef.current) {
+        // Clear any pressed keys when game is not active
+        keysRef.current[e.key] = false;
+        return;
+      }
+      
       // Prevent default for arrow keys to avoid scrolling (only when game is active)
-      if (gameStartedRef.current && !gameOverRef.current && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'W', 'a', 'A', 's', 'S', 'd', 'D'].includes(e.key)) {
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'W', 'a', 'A', 's', 'S', 'd', 'D'].includes(e.key)) {
         e.preventDefault();
       }
       keysRef.current[e.key] = true;
@@ -345,10 +365,16 @@ const DodgeMySkills: React.FC = () => {
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
         return;
       }
+      // Always clear key state on keyup
       keysRef.current[e.key] = false;
     };
     
     const handleMouseMove = (e: MouseEvent) => {
+      // Only update mouse position when game is active
+      if (!gameStartedRef.current || gameOverRef.current) {
+        mouseRef.current = null;
+        return;
+      }
       const canvas = canvasRef.current;
       if (!canvas) return;
       const rect = canvas.getBoundingClientRect();
@@ -392,7 +418,9 @@ const DodgeMySkills: React.FC = () => {
     setEncounteredSkills(new Set());
     setLeaderboardPage(1); // Reset to first page
     projectilesRef.current = [];
+    // Clear all input state when starting new game
     mouseRef.current = null;
+    keysRef.current = {};
     const now = Date.now();
     lastSpawnTimeRef.current = now;
     spawnIntervalRef.current = BASE_SPAWN_INTERVAL;
