@@ -9,7 +9,7 @@ const Projects: React.FC = () => {
     <Layout>
       <div className="w-full flex flex-col items-center">
         <div className="pt-4 sm:pt-8 md:pt-12 mb-6 sm:mb-8 w-full max-w-2xl mx-auto px-4">
-          <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold mb-6 sm:mb-8 italic border-b border-darkOlive/20 pb-4 text-center">
+          <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold mb-6 sm:mb-8 italic border-b border-darkOlive/20 dark:border-offWhite/20 pb-4 text-center">
             Projects
           </h1>
         </div>
@@ -20,7 +20,7 @@ const Projects: React.FC = () => {
             href={project.link}
             target="_blank"
             rel="noopener noreferrer"
-            className="group block border-b border-darkOlive/10 pb-8 sm:pb-12 hover:border-darkOlive transition-colors cursor-pointer"
+            className="group block border-b border-darkOlive/10 dark:border-offWhite/10 pb-8 sm:pb-12 hover:border-darkOlive dark:hover:border-offWhite transition-colors cursor-pointer"
           >
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6">
               <div className="space-y-3 sm:space-y-4">
@@ -35,7 +35,7 @@ const Projects: React.FC = () => {
                 </p>
                 <div className="flex flex-wrap gap-2 sm:gap-4">
                   {project.tags.map(tag => (
-                    <span key={tag} className="text-[10px] tracking-widest uppercase border border-darkOlive/20 px-2 py-1">
+                    <span key={tag} className="text-[10px] tracking-widest uppercase border border-darkOlive/20 dark:border-offWhite/20 px-2 py-1">
                       {tag}
                     </span>
                   ))}

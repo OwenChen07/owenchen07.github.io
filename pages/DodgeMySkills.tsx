@@ -3,7 +3,9 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import Layout from '../components/Layout';
 import { SKILLS, SKILL_LOGOS } from '../constants';
 import { Projectile, Player, LeaderboardEntry } from '../types';
-import { getTopEntries, saveLeaderboardEntry, isHighScore, formatDate } from '../utils/leaderboard';
+import { getTopEntries, getPaginatedEntries, saveLeaderboardEntry, formatDate } from '../utils/leaderboard';
+import { useDarkMode } from '../contexts/DarkModeContext';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 // ============================================
 // GAME CONSTANTS - Edit values here
@@ -32,6 +34,7 @@ const MIN_SPAWN_INTERVAL = 300;          // Minimum spawn interval in ms (lower 
 const SPAWN_DECREASE_PER_SCORE = 5;     // Spawn interval decrease per displayed score point (interval = max(MIN, BASE - (displayScore * this)))
 
 const DodgeMySkills: React.FC = () => {
+  const { isDark } = useDarkMode();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [score, setScore] = useState(0);
   const [gameOver, setGameOver] = useState(false);
@@ -41,6 +44,8 @@ const DodgeMySkills: React.FC = () => {
   const [showNameInput, setShowNameInput] = useState(false);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [loadingLeaderboard, setLoadingLeaderboard] = useState(true);
+  const [leaderboardPage, setLeaderboardPage] = useState(1);
+  const [totalLeaderboardEntries, setTotalLeaderboardEntries] = useState(0);
   
   // Game State Refs (to avoid re-renders during loop)
   const playerRef = useRef<Player>({
@@ -235,7 +240,7 @@ const DodgeMySkills: React.FC = () => {
     setScore(prev => prev + 1);
     draw();
     animationFrameRef.current = requestAnimationFrame(update);
-  }, [gameOver, gameStarted, spawnProjectile]);
+  }, [gameOver, gameStarted, spawnProjectile, isDark]);
 
   const draw = () => {
     const canvas = canvasRef.current;
@@ -245,13 +250,13 @@ const DodgeMySkills: React.FC = () => {
 
     ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-    // Draw Boundary
-    ctx.strokeStyle = '#52543e22';
+    // Draw Boundary - use dark mode colors
+    ctx.strokeStyle = isDark ? '#FDFAF522' : '#52543e22';
     ctx.lineWidth = 1;
     ctx.strokeRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-    // Draw Player
-    ctx.fillStyle = '#52543e';
+    // Draw Player - use dark mode colors
+    ctx.fillStyle = isDark ? '#FDFAF5' : '#52543e';
     ctx.beginPath();
     ctx.arc(playerRef.current.x, playerRef.current.y, playerRef.current.radius, 0, Math.PI * 2);
     ctx.fill();
@@ -268,8 +273,8 @@ const DodgeMySkills: React.FC = () => {
         const size = proj.radius * 2;
         ctx.drawImage(img, -proj.radius, -proj.radius, size, size);
       } else {
-        // Fallback: draw a circle
-        ctx.fillStyle = '#52543e';
+        // Fallback: draw a circle - use dark mode colors
+        ctx.fillStyle = isDark ? '#FDFAF5' : '#52543e';
         ctx.beginPath();
         ctx.arc(0, 0, proj.radius, 0, Math.PI * 2);
         ctx.fill();
@@ -385,6 +390,7 @@ const DodgeMySkills: React.FC = () => {
     setScore(0);
     setGameStarted(true);
     setEncounteredSkills(new Set());
+    setLeaderboardPage(1); // Reset to first page
     projectilesRef.current = [];
     mouseRef.current = null;
     const now = Date.now();
@@ -415,27 +421,21 @@ const DodgeMySkills: React.FC = () => {
 
   const encounteredSkillsList: string[] = Array.from(encounteredSkills).sort() as string[];
 
-  // Check if score is a high score when game ends
+  // Show name input when game ends (allow saving all scores)
   useEffect(() => {
-    const checkHighScore = async () => {
-      if (gameOver && score > 0) {
-        const displayScore = Math.floor(score / 10);
-        const isHigh = await isHighScore(displayScore);
-        if (isHigh) {
-          setShowNameInput(true);
-        }
-      }
-    };
-    checkHighScore();
+    if (gameOver && score > 0) {
+      setShowNameInput(true);
+    }
   }, [gameOver, score]);
 
-  // Load leaderboard when component mounts
+  // Load leaderboard when component mounts or page changes
   useEffect(() => {
     const loadLeaderboard = async () => {
       setLoadingLeaderboard(true);
       try {
-        const entries = await getTopEntries();
+        const { entries, totalCount } = await getPaginatedEntries(leaderboardPage, 10);
         setLeaderboard(entries);
+        setTotalLeaderboardEntries(totalCount);
       } catch (error) {
         console.error('Error loading leaderboard:', error);
       } finally {
@@ -443,7 +443,7 @@ const DodgeMySkills: React.FC = () => {
       }
     };
     loadLeaderboard();
-  }, []);
+  }, [leaderboardPage]);
 
   const handleNameSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -459,8 +459,9 @@ const DodgeMySkills: React.FC = () => {
           skillsEncountered: encounteredSkillsList,
         });
         // Reload leaderboard after saving
-        const entries = await getTopEntries();
+        const { entries, totalCount } = await getPaginatedEntries(leaderboardPage, 10);
         setLeaderboard(entries);
+        setTotalLeaderboardEntries(totalCount);
         setShowNameInput(false);
         setPlayerName('');
       } catch (error) {
@@ -479,7 +480,7 @@ const DodgeMySkills: React.FC = () => {
     <Layout>
       <div className="w-full flex flex-col items-center">
         <div className="pt-4 sm:pt-8 md:pt-12 mb-6 sm:mb-8 w-full max-w-2xl mx-auto px-4">
-          <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold mb-6 sm:mb-8 italic border-b border-darkOlive/20 pb-4 text-center">
+          <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold mb-6 sm:mb-8 italic border-b border-darkOlive/20 dark:border-offWhite/20 pb-4 text-center">
             Skills
           </h1>
         </div>
@@ -496,7 +497,7 @@ const DodgeMySkills: React.FC = () => {
 
           {/* Row 2: Game Window */}
           <div className="flex flex-col items-center gap-4 w-full md:col-span-2">
-            <div className="relative border-2 border-darkOlive/10 bg-offWhite overflow-hidden w-full max-w-full" style={{ aspectRatio: `${CANVAS_WIDTH} / ${CANVAS_HEIGHT}` }}>
+            <div className="relative border-2 border-darkOlive/10 dark:border-offWhite/10 bg-offWhite dark:bg-darkOlive overflow-hidden w-full max-w-full" style={{ aspectRatio: `${CANVAS_WIDTH} / ${CANVAS_HEIGHT}` }}>
           <canvas 
             ref={canvasRef} 
             width={CANVAS_WIDTH} 
@@ -506,7 +507,7 @@ const DodgeMySkills: React.FC = () => {
           />
 
           {(!gameStarted || gameOver) && (
-            <div className="absolute inset-0 bg-offWhite/80 backdrop-blur-sm flex flex-col items-center justify-center p-4 sm:p-6 md:p-8 text-center animate-in fade-in duration-500 overflow-y-auto">
+                  <div className="absolute inset-0 bg-offWhite/80 dark:bg-darkOlive/80 backdrop-blur-sm flex flex-col items-center justify-center p-4 sm:p-6 md:p-8 text-center animate-in fade-in duration-500 overflow-y-auto">
               {gameOver ? (
                 <>
                   <h3 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-3 sm:mb-4 italic">Defeated</h3>               
@@ -528,14 +529,14 @@ const DodgeMySkills: React.FC = () => {
                         }}
                         placeholder="AA"
                         maxLength={2}
-                        className="w-full px-3 sm:px-4 py-2 border border-darkOlive/20 bg-offWhite text-darkOlive mb-2 sm:mb-3 focus:outline-none focus:border-darkOlive/50 text-center text-xl sm:text-2xl font-bold tracking-wider"
+                        className="w-full px-3 sm:px-4 py-2 border border-darkOlive/20 dark:border-offWhite/20 bg-offWhite dark:bg-darkOlive text-darkOlive dark:text-offWhite mb-2 sm:mb-3 focus:outline-none focus:border-darkOlive/50 dark:focus:border-offWhite/50 text-center text-xl sm:text-2xl font-bold tracking-wider"
                         style={{ textTransform: 'uppercase' }}
                         autoFocus
                       />
                       <button
                         type="submit"
                         disabled={playerName.length !== 2}
-                        className="w-full px-4 sm:px-6 py-2 bg-darkOlive text-offWhite hover:bg-opacity-90 transition-all uppercase tracking-[0.2em] text-[10px] sm:text-xs font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full px-4 sm:px-6 py-2 bg-darkOlive dark:bg-offWhite text-offWhite dark:text-darkOlive hover:bg-opacity-90 dark:hover:bg-opacity-90 transition-all uppercase tracking-[0.2em] text-[10px] sm:text-xs font-bold disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         Submit
                       </button>
@@ -549,10 +550,10 @@ const DodgeMySkills: React.FC = () => {
                         {encounteredSkillsList.map((skillName) => {
                           const skill = SKILLS.find(s => s.name === skillName);
                           return (
-                            <div
-                              key={skillName}
-                              className="flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 border border-darkOlive/20 bg-offWhite/50"
-                            >
+                                  <div
+                                    key={skillName}
+                                    className="flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 border border-darkOlive/20 dark:border-offWhite/20 bg-offWhite/50 dark:bg-darkOlive/50"
+                                  >
                               {skill?.icon}
                               <span className="text-xs sm:text-sm font-medium">{skillName}</span>
                             </div>
@@ -568,12 +569,12 @@ const DodgeMySkills: React.FC = () => {
                   <p className="text-sm sm:text-base md:text-lg mb-6 sm:mb-8 opacity-70 max-w-md px-4">Dodge my skills using WASD, arrow keys, or your mouse.</p>
                 </>
               )}
-              <button 
-                onClick={handleStartGame}
-                className="px-8 sm:px-12 py-3 sm:py-4 bg-darkOlive text-offWhite hover:bg-opacity-90 hover:scale-105 transition-all uppercase tracking-[0.3em] text-[10px] sm:text-xs font-bold"
-              >
-                {gameOver ? 'Try Again' : 'Play'}
-              </button>
+                    <button
+                      onClick={handleStartGame}
+                      className="px-8 sm:px-12 py-3 sm:py-4 bg-darkOlive dark:bg-offWhite text-offWhite dark:text-darkOlive hover:bg-opacity-90 dark:hover:bg-opacity-90 hover:scale-105 transition-all uppercase tracking-[0.3em] text-[10px] sm:text-xs font-bold"
+                    >
+                      {gameOver ? 'Try Again' : 'Play'}
+                    </button>
             </div>
           )}
             </div>
@@ -581,34 +582,61 @@ const DodgeMySkills: React.FC = () => {
 
           {/* Row 2: Leaderboard Box */}
           <div className="w-full flex flex-col">
-            <div className="border border-darkOlive/10 bg-offWhite/50 p-4 sm:p-6 flex-1">
-              {leaderboard.length === 0 ? (
+            <div className="border border-darkOlive/10 dark:border-offWhite/10 bg-offWhite/50 dark:bg-darkOlive/50 p-4 sm:p-6 flex-1 flex flex-col">
+              {loadingLeaderboard ? (
+                <p className="text-center text-xs sm:text-sm opacity-60 py-6 sm:py-8">Loading...</p>
+              ) : leaderboard.length === 0 ? (
                 <p className="text-center text-xs sm:text-sm opacity-60 py-6 sm:py-8">No scores yet. Be the first!</p>
               ) : (
-                <div className="space-y-1">
-                  {leaderboard.slice(0, 10).map((entry, index) => (
-                    <div
-                      key={`${entry.timestamp}-${index}`}
-                      className="flex items-center justify-between py-1 sm:py-1.5 border-b border-darkOlive/10 last:border-0"
-                    >
-                        <div className="flex items-center gap-2 sm:gap-4">
-                          <span className="text-xs sm:text-sm font-bold opacity-50 w-5 sm:w-6 text-right">
-                            {index + 1}
-                          </span>
-                          <div>
-                            <p className="text-sm sm:text-base font-medium">{entry.name}</p>
-                            <p className="text-[10px] sm:text-xs opacity-50">{formatDate(entry.timestamp)}</p>
+                <>
+                  <div className="space-y-1 flex-1">
+                    {leaderboard.map((entry, index) => {
+                      const rank = (leaderboardPage - 1) * 10 + index + 1;
+                      return (
+                        <div
+                          key={`${entry.timestamp}-${index}`}
+                          className="flex items-center justify-between py-1 sm:py-1.5 border-b border-darkOlive/10 dark:border-offWhite/10 last:border-0"
+                        >
+                          <div className="flex items-center gap-2 sm:gap-4">
+                            <span className="text-xs sm:text-sm font-bold opacity-50 w-5 sm:w-6 text-right">
+                              {rank}
+                            </span>
+                            <div>
+                              <p className="text-sm sm:text-base font-medium">{entry.name}</p>
+                              <p className="text-[10px] sm:text-xs opacity-50">{formatDate(entry.timestamp)}</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-base sm:text-lg font-mono font-bold">{entry.score}</p>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <p className="text-base sm:text-lg font-mono font-bold">{entry.score}</p>
-                          {/* {entry.skillsEncountered.length > 0 && (
-                            <p className="text-xs opacity-50">{entry.skillsEncountered.length} skills</p>
-                          )} */}
-                        </div>
-                      </div>
-                  ))}
-                </div>
+                      );
+                    })}
+                  </div>
+                  {totalLeaderboardEntries > 10 && (
+                    <div className="flex items-center justify-between mt-4 pt-4 border-t border-darkOlive/10 dark:border-offWhite/10">
+                      <button
+                        onClick={() => setLeaderboardPage(prev => Math.max(1, prev - 1))}
+                        disabled={leaderboardPage === 1}
+                        className="flex items-center gap-1 px-3 py-1.5 text-xs sm:text-sm font-medium uppercase tracking-wider hover:opacity-60 transition-opacity disabled:opacity-30 disabled:cursor-not-allowed"
+                      >
+                        <ChevronLeft size={16} />
+                        <span className="hidden sm:inline">Prev</span>
+                      </button>
+                      <span className="text-xs sm:text-sm opacity-60">
+                        Page {leaderboardPage} of {Math.ceil(totalLeaderboardEntries / 10)}
+                      </span>
+                      <button
+                        onClick={() => setLeaderboardPage(prev => prev + 1)}
+                        disabled={leaderboardPage >= Math.ceil(totalLeaderboardEntries / 10)}
+                        className="flex items-center gap-1 px-3 py-1.5 text-xs sm:text-sm font-medium uppercase tracking-wider hover:opacity-60 transition-opacity disabled:opacity-30 disabled:cursor-not-allowed"
+                      >
+                        <span className="hidden sm:inline">Next</span>
+                        <ChevronRight size={16} />
+                      </button>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>

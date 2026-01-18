@@ -38,11 +38,11 @@ export const getLeaderboard = async (): Promise<LeaderboardEntry[]> => {
 
 /**
  * Save a leaderboard entry to Supabase
- * Database handles sorting and limiting via queries
+ * Stores all entries in the database (no limit)
  */
 export const saveLeaderboardEntry = async (entry: LeaderboardEntry): Promise<void> => {
   try {
-    // Insert the new entry
+    // Insert the new entry (no cleanup - store all entries)
     const { error } = await supabase
       .from('leaderboard')
       .insert({
@@ -54,41 +54,11 @@ export const saveLeaderboardEntry = async (entry: LeaderboardEntry): Promise<voi
 
     if (error) {
       console.error('Error saving leaderboard entry:', error);
-      return;
-    }
-
-    // Clean up old entries beyond the limit
-    // Get all entries sorted by score
-    const { data: allEntries, error: fetchError } = await supabase
-      .from('leaderboard')
-      .select('id')
-      .order('score', { ascending: false })
-      .order('timestamp', { ascending: true });
-
-    if (fetchError) {
-      console.error('Error fetching entries for cleanup:', fetchError);
-      return;
-    }
-
-    // Delete entries beyond the limit
-    if (allEntries && allEntries.length > MAX_LEADERBOARD_ENTRIES) {
-      const idsToDelete = allEntries
-        .slice(MAX_LEADERBOARD_ENTRIES)
-        .map(entry => entry.id);
-
-      if (idsToDelete.length > 0) {
-        const { error: deleteError } = await supabase
-          .from('leaderboard')
-          .delete()
-          .in('id', idsToDelete);
-
-        if (deleteError) {
-          console.error('Error cleaning up old entries:', deleteError);
-        }
-      }
+      throw error;
     }
   } catch (error) {
     console.error('Error saving leaderboard entry:', error);
+    throw error;
   }
 };
 
@@ -113,6 +83,49 @@ export const getTopEntries = async (count: number = MAX_LEADERBOARD_ENTRIES): Pr
   } catch (error) {
     console.error('Error reading top entries from Supabase:', error);
     return [];
+  }
+};
+
+/**
+ * Get paginated leaderboard entries
+ */
+export const getPaginatedEntries = async (
+  page: number = 1,
+  entriesPerPage: number = MAX_LEADERBOARD_ENTRIES
+): Promise<{ entries: LeaderboardEntry[]; totalCount: number }> => {
+  try {
+    // Get total count
+    const { count, error: countError } = await supabase
+      .from('leaderboard')
+      .select('*', { count: 'exact', head: true });
+
+    if (countError) {
+      console.error('Error fetching leaderboard count:', countError);
+    }
+
+    // Get paginated entries
+    const from = (page - 1) * entriesPerPage;
+    const to = from + entriesPerPage - 1;
+
+    const { data, error } = await supabase
+      .from('leaderboard')
+      .select('*')
+      .order('score', { ascending: false })
+      .order('timestamp', { ascending: true })
+      .range(from, to);
+
+    if (error) {
+      console.error('Error fetching paginated entries:', error);
+      return { entries: [], totalCount: count || 0 };
+    }
+
+    return {
+      entries: (data || []).map(dbToAppEntry),
+      totalCount: count || 0,
+    };
+  } catch (error) {
+    console.error('Error reading paginated entries from Supabase:', error);
+    return { entries: [], totalCount: 0 };
   }
 };
 

@@ -8,7 +8,7 @@ const About: React.FC = () => {
     <Layout>
       <div className="w-full flex flex-col items-center">
         <div className="pt-4 sm:pt-8 md:pt-12 mb-6 sm:mb-8 w-full max-w-2xl mx-auto px-4">
-          <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold mb-6 sm:mb-8 italic border-b border-darkOlive/20 pb-4 text-center">
+          <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold mb-6 sm:mb-8 italic border-b border-darkOlive/20 dark:border-offWhite/20 pb-4 text-center">
             About
           </h1>
         </div>
