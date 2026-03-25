@@ -3,6 +3,12 @@ import { supabase, isSupabaseConfigured, DatabaseLeaderboardEntry } from '../lib
 
 const MAX_LEADERBOARD_ENTRIES = 10;
 
+export interface PaginatedLeaderboardResult {
+  entries: LeaderboardEntry[];
+  totalCount: number;
+  error?: string;
+}
+
 /**
  * Convert database entry to app entry format
  */
@@ -104,9 +110,13 @@ export const getTopEntries = async (count: number = MAX_LEADERBOARD_ENTRIES): Pr
 export const getPaginatedEntries = async (
   page: number = 1,
   entriesPerPage: number = MAX_LEADERBOARD_ENTRIES
-): Promise<{ entries: LeaderboardEntry[]; totalCount: number }> => {
+): Promise<PaginatedLeaderboardResult> => {
   if (!isSupabaseConfigured || !supabase) {
-    return { entries: [], totalCount: 0 };
+    return {
+      entries: [],
+      totalCount: 0,
+      error: 'Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY at build time.',
+    };
   }
 
   try {
@@ -132,16 +142,25 @@ export const getPaginatedEntries = async (
 
     if (error) {
       console.error('Error fetching paginated entries:', error);
-      return { entries: [], totalCount: count || 0 };
+      return {
+        entries: [],
+        totalCount: count || 0,
+        error: error.message || 'Failed to fetch leaderboard entries.',
+      };
     }
 
     return {
       entries: (data || []).map(dbToAppEntry),
       totalCount: count || 0,
+      error: countError?.message,
     };
   } catch (error) {
     console.error('Error reading paginated entries from Supabase:', error);
-    return { entries: [], totalCount: 0 };
+    return {
+      entries: [],
+      totalCount: 0,
+      error: error instanceof Error ? error.message : 'Unknown leaderboard error.',
+    };
   }
 };
 

@@ -6,8 +6,9 @@ npm run restore-dev  # Restores source index.html for dev
 
 # Option 2: Manual deployment
 npm run build
+rm -rf assets
 cp -r dist/* .
-git add .
+git add -A
 git commit -m "Deploy"
 git push origin main
 npm run restore-dev  # Restores source index.html for dev

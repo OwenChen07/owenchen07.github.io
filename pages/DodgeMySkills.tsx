@@ -44,6 +44,7 @@ const DodgeMySkills: React.FC = () => {
   const [showNameInput, setShowNameInput] = useState(false);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [loadingLeaderboard, setLoadingLeaderboard] = useState(true);
+  const [leaderboardError, setLeaderboardError] = useState<string | null>(null);
   const [leaderboardPage, setLeaderboardPage] = useState(1);
   const [totalLeaderboardEntries, setTotalLeaderboardEntries] = useState(0);
   
@@ -461,11 +462,13 @@ const DodgeMySkills: React.FC = () => {
     const loadLeaderboard = async () => {
       setLoadingLeaderboard(true);
       try {
-        const { entries, totalCount } = await getPaginatedEntries(leaderboardPage, 10);
+        const { entries, totalCount, error } = await getPaginatedEntries(leaderboardPage, 10);
         setLeaderboard(entries);
         setTotalLeaderboardEntries(totalCount);
+        setLeaderboardError(error || null);
       } catch (error) {
         console.error('Error loading leaderboard:', error);
+        setLeaderboardError('Failed to load leaderboard.');
       } finally {
         setLoadingLeaderboard(false);
       }
@@ -487,9 +490,10 @@ const DodgeMySkills: React.FC = () => {
           skillsEncountered: encounteredSkillsList,
         });
         // Reload leaderboard after saving
-        const { entries, totalCount } = await getPaginatedEntries(leaderboardPage, 10);
+        const { entries, totalCount, error } = await getPaginatedEntries(leaderboardPage, 10);
         setLeaderboard(entries);
         setTotalLeaderboardEntries(totalCount);
+        setLeaderboardError(error || null);
         setShowNameInput(false);
         setPlayerName('');
       } catch (error) {
@@ -613,6 +617,10 @@ const DodgeMySkills: React.FC = () => {
             <div className="border border-darkOlive/10 dark:border-offWhite/10 bg-offWhite/50 dark:bg-darkOlive/50 p-4 sm:p-6 flex-1 flex flex-col">
               {loadingLeaderboard ? (
                 <p className="text-center text-xs sm:text-sm opacity-60 py-6 sm:py-8">Loading...</p>
+              ) : leaderboardError ? (
+                <p className="text-center text-xs sm:text-sm opacity-70 py-6 sm:py-8 px-4">
+                  Leaderboard unavailable: {leaderboardError}
+                </p>
               ) : leaderboard.length === 0 ? (
                 <p className="text-center text-xs sm:text-sm opacity-60 py-6 sm:py-8">No scores yet. Be the first!</p>
               ) : (

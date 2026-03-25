@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "deploy": "npm run build && cp -r dist/* . && git add . && echo 'Built files copied. Run: git commit -m \"Deploy\" && git push origin main'",
+    "deploy": "npm run build && rm -rf assets && cp -r dist/* . && git add -A && echo 'Built files synced. Run: git commit -m \"Deploy\" && git push origin main'",
     "restore-dev": "git checkout HEAD -- index.html"
   },
   "dependencies": {
