@@ -1,5 +1,5 @@
 import { LeaderboardEntry } from '../types';
-import { supabase, DatabaseLeaderboardEntry } from '../lib/supabase';
+import { supabase, isSupabaseConfigured, DatabaseLeaderboardEntry } from '../lib/supabase';
 
 const MAX_LEADERBOARD_ENTRIES = 10;
 
@@ -17,6 +17,10 @@ const dbToAppEntry = (dbEntry: DatabaseLeaderboardEntry): LeaderboardEntry => ({
  * Get all leaderboard entries from Supabase
  */
 export const getLeaderboard = async (): Promise<LeaderboardEntry[]> => {
+  if (!isSupabaseConfigured || !supabase) {
+    return [];
+  }
+
   try {
     const { data, error } = await supabase
       .from('leaderboard')
@@ -41,6 +45,10 @@ export const getLeaderboard = async (): Promise<LeaderboardEntry[]> => {
  * Stores all entries in the database (no limit)
  */
 export const saveLeaderboardEntry = async (entry: LeaderboardEntry): Promise<void> => {
+  if (!isSupabaseConfigured || !supabase) {
+    return;
+  }
+
   try {
     // Insert the new entry (no cleanup - store all entries)
     const { error } = await supabase
@@ -66,6 +74,10 @@ export const saveLeaderboardEntry = async (entry: LeaderboardEntry): Promise<voi
  * Get top N entries from leaderboard
  */
 export const getTopEntries = async (count: number = MAX_LEADERBOARD_ENTRIES): Promise<LeaderboardEntry[]> => {
+  if (!isSupabaseConfigured || !supabase) {
+    return [];
+  }
+
   try {
     const { data, error } = await supabase
       .from('leaderboard')
@@ -93,6 +105,10 @@ export const getPaginatedEntries = async (
   page: number = 1,
   entriesPerPage: number = MAX_LEADERBOARD_ENTRIES
 ): Promise<{ entries: LeaderboardEntry[]; totalCount: number }> => {
+  if (!isSupabaseConfigured || !supabase) {
+    return { entries: [], totalCount: 0 };
+  }
+
   try {
     // Get total count
     const { count, error: countError } = await supabase
@@ -133,6 +149,10 @@ export const getPaginatedEntries = async (
  * Check if a score would make it to the leaderboard
  */
 export const isHighScore = async (score: number): Promise<boolean> => {
+  if (!isSupabaseConfigured || !supabase) {
+    return true;
+  }
+
   try {
     // Get current leaderboard count and lowest score
     const { data, error } = await supabase
