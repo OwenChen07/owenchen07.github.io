@@ -16,7 +16,12 @@ const Home: React.FC = () => {
             <Link to="/about" className="hover:opacity-60 transition-opacity">About</Link>
             <Link to="/projects" className="hover:opacity-60 transition-opacity">Projects</Link>
             <Link to="/contact" className="hover:opacity-60 transition-opacity">Contact</Link>
-            <Link to="/dodge-my-skills" className="hover:opacity-60 transition-opacity">Skills</Link>
+            <div className="relative">
+              <span className="pointer-events-none absolute -inset-1 rounded-sm bg-current/20 motion-safe:animate-ping" aria-hidden="true" />
+              <Link to="/dodge-my-skills" className="relative px-1 transition-opacity hover:opacity-70 motion-safe:animate-pulse">
+                Skills
+              </Link>
+            </div>
           </nav>
         </div>
       </div>
