@@ -6,8 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "postbuild": "cp dist/index.html dist/404.html",
     "preview": "vite preview",
-    "deploy": "npm run build && cp dist/index.html dist/404.html && rm -rf assets && cp -r dist/* . && git add -A && echo 'Built files synced. Run: git commit -m \"Deploy\" && git push origin main'",
+    "deploy": "npm run build && rm -rf assets && cp -r dist/* . && git add -A && echo 'Built files synced. Run: git commit -m \"Deploy\" && git push origin main'",
     "restore-dev": "cp index.dev.html index.html"
   },
   "dependencies": {

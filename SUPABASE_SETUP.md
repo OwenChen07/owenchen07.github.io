@@ -67,7 +67,13 @@ VITE_SUPABASE_ANON_KEY=your_anon_key_here
 
 For GitHub Pages:
 - These will need to be public (in the built code)
-- Alternative: Create a `config.ts` file (we'll set this up)
+- Add repository secrets so GitHub Actions can inject them at build time:
+  - `VITE_SUPABASE_URL`
+  - `VITE_SUPABASE_ANON_KEY`
+  - Path: GitHub repo -> Settings -> Secrets and variables -> Actions -> New repository secret
+
+If these secrets are missing, the deployed site will show:
+"Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY at build time."
 
 ## Step 5: Code Changes
 
