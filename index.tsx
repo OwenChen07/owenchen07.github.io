@@ -1,9 +1,15 @@
 
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { HashRouter } from 'react-router-dom';
+import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import { DarkModeProvider } from './contexts/DarkModeContext';
+
+// Migrate old hash-based URLs (e.g. /#/projects) to clean paths (/projects).
+if (window.location.hash.startsWith('#/')) {
+  const hashPath = window.location.hash.slice(1);
+  window.history.replaceState(null, '', hashPath);
+}
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -14,9 +20,9 @@ const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
     <DarkModeProvider>
-      <HashRouter>
+      <BrowserRouter>
         <App />
-      </HashRouter>
+      </BrowserRouter>
     </DarkModeProvider>
   </React.StrictMode>
 );
