@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import Layout from '../components/Layout';
 import { SKILLS, SKILL_LOGOS } from '../constants';
 import { Projectile, Player, LeaderboardEntry } from '../types';
-import { getTopEntries, getPaginatedEntries, saveLeaderboardEntry, formatDate } from '../utils/leaderboard';
+import { getPaginatedEntries, getTopEntriesLastDays, saveLeaderboardEntry, formatDate } from '../utils/leaderboard';
 import { useDarkMode } from '../contexts/DarkModeContext';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
@@ -33,6 +33,8 @@ const BASE_SPAWN_INTERVAL = 2000;        // Starting spawn interval in ms (highe
 const MIN_SPAWN_INTERVAL = 300;          // Minimum spawn interval in ms (lower = faster max rate)
 const SPAWN_DECREASE_PER_SCORE = 5;     // Spawn interval decrease per displayed score point (interval = max(MIN, BASE - (displayScore * this)))
 
+type LeaderboardMode = 'allTime' | 'last7Days';
+
 const DodgeMySkills: React.FC = () => {
   const { isDark } = useDarkMode();
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -45,6 +47,7 @@ const DodgeMySkills: React.FC = () => {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [loadingLeaderboard, setLoadingLeaderboard] = useState(true);
   const [leaderboardError, setLeaderboardError] = useState<string | null>(null);
+  const [leaderboardMode, setLeaderboardMode] = useState<LeaderboardMode>('allTime');
   const [leaderboardPage, setLeaderboardPage] = useState(1);
   const [totalLeaderboardEntries, setTotalLeaderboardEntries] = useState(0);
   
@@ -417,7 +420,6 @@ const DodgeMySkills: React.FC = () => {
     setScore(0);
     setGameStarted(true);
     setEncounteredSkills(new Set());
-    setLeaderboardPage(1); // Reset to first page
     projectilesRef.current = [];
     // Clear all input state when starting new game
     mouseRef.current = null;
@@ -457,24 +459,32 @@ const DodgeMySkills: React.FC = () => {
     }
   }, [gameOver, score]);
 
-  // Load leaderboard when component mounts or page changes
-  useEffect(() => {
-    const loadLeaderboard = async () => {
-      setLoadingLeaderboard(true);
-      try {
+  const loadLeaderboard = useCallback(async () => {
+    setLoadingLeaderboard(true);
+    try {
+      if (leaderboardMode === 'last7Days') {
+        const entries = await getTopEntriesLastDays(7, 10);
+        setLeaderboard(entries);
+        setTotalLeaderboardEntries(entries.length);
+        setLeaderboardError(null);
+      } else {
         const { entries, totalCount, error } = await getPaginatedEntries(leaderboardPage, 10);
         setLeaderboard(entries);
         setTotalLeaderboardEntries(totalCount);
         setLeaderboardError(error || null);
-      } catch (error) {
-        console.error('Error loading leaderboard:', error);
-        setLeaderboardError('Failed to load leaderboard.');
-      } finally {
-        setLoadingLeaderboard(false);
       }
-    };
+    } catch (error) {
+      console.error('Error loading leaderboard:', error);
+      setLeaderboardError('Failed to load leaderboard.');
+    } finally {
+      setLoadingLeaderboard(false);
+    }
+  }, [leaderboardMode, leaderboardPage]);
+
+  // Load leaderboard when component mounts or mode changes
+  useEffect(() => {
     loadLeaderboard();
-  }, [leaderboardPage]);
+  }, [loadLeaderboard]);
 
   const handleNameSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -490,10 +500,7 @@ const DodgeMySkills: React.FC = () => {
           skillsEncountered: encounteredSkillsList,
         });
         // Reload leaderboard after saving
-        const { entries, totalCount, error } = await getPaginatedEntries(leaderboardPage, 10);
-        setLeaderboard(entries);
-        setTotalLeaderboardEntries(totalCount);
-        setLeaderboardError(error || null);
+        await loadLeaderboard();
         setShowNameInput(false);
         setPlayerName('');
       } catch (error) {
@@ -528,7 +535,7 @@ const DodgeMySkills: React.FC = () => {
           </div>
 
           {/* Row 2: Game Window */}
-          <div className="flex flex-col items-center gap-4 w-full md:col-span-2">
+          <div className="flex flex-col w-full md:col-span-2 md:h-full">
             <div className="relative border-2 border-darkOlive/10 dark:border-offWhite/10 bg-offWhite dark:bg-darkOlive overflow-hidden w-full max-w-full" style={{ aspectRatio: `${CANVAS_WIDTH} / ${CANVAS_HEIGHT}` }}>
           <canvas 
             ref={canvasRef} 
@@ -613,21 +620,54 @@ const DodgeMySkills: React.FC = () => {
           </div>
 
           {/* Row 2: Leaderboard Box */}
-          <div className="w-full flex flex-col">
-            <div className="border border-darkOlive/10 dark:border-offWhite/10 bg-offWhite/50 dark:bg-darkOlive/50 p-4 sm:p-6 flex-1 flex flex-col">
+          <div className="w-full flex flex-col md:h-full">
+            <div className="border border-darkOlive/10 dark:border-offWhite/10 bg-offWhite/50 dark:bg-darkOlive/50 p-4 sm:p-6 flex-1 flex flex-col h-full">
+              <div className="mb-4 flex items-center justify-center gap-2 border-b border-darkOlive/10 dark:border-offWhite/10 pb-3">
+                <button
+                  onClick={() => {
+                    setLeaderboardMode('allTime');
+                    setLeaderboardPage(1);
+                  }}
+                  className={`px-3 py-1.5 text-[10px] sm:text-xs font-bold uppercase tracking-[0.2em] transition-all border ${
+                    leaderboardMode === 'allTime'
+                      ? 'bg-darkOlive dark:bg-offWhite text-offWhite dark:text-darkOlive border-darkOlive dark:border-offWhite'
+                      : 'border-darkOlive/20 dark:border-offWhite/20 hover:border-darkOlive/40 dark:hover:border-offWhite/40'
+                  }`}
+                >
+                  All Time
+                </button>
+                <button
+                  onClick={() => {
+                    setLeaderboardMode('last7Days');
+                    setLeaderboardPage(1);
+                  }}
+                  className={`px-3 py-1.5 text-[10px] sm:text-xs font-bold uppercase tracking-[0.2em] transition-all border ${
+                    leaderboardMode === 'last7Days'
+                      ? 'bg-darkOlive dark:bg-offWhite text-offWhite dark:text-darkOlive border-darkOlive dark:border-offWhite'
+                      : 'border-darkOlive/20 dark:border-offWhite/20 hover:border-darkOlive/40 dark:hover:border-offWhite/40'
+                  }`}
+                >
+                  Last 7 Days
+                </button>
+              </div>
+              <div className="h-full min-h-[420px] flex flex-col">
               {loadingLeaderboard ? (
-                <p className="text-center text-xs sm:text-sm opacity-60 py-6 sm:py-8">Loading...</p>
+                <p className="text-center text-xs sm:text-sm opacity-60 py-6 sm:py-8 h-full flex items-center justify-center">Loading...</p>
               ) : leaderboardError ? (
-                <p className="text-center text-xs sm:text-sm opacity-70 py-6 sm:py-8 px-4">
+                <p className="text-center text-xs sm:text-sm opacity-70 py-6 sm:py-8 px-4 h-full flex items-center justify-center">
                   Leaderboard unavailable: {leaderboardError}
                 </p>
               ) : leaderboard.length === 0 ? (
-                <p className="text-center text-xs sm:text-sm opacity-60 py-6 sm:py-8">No scores yet. Be the first!</p>
+                <p className="text-center text-xs sm:text-sm opacity-60 py-6 sm:py-8 h-full flex items-center justify-center">
+                  {leaderboardMode === 'last7Days' ? 'No scores in the last 7 days yet.' : 'No scores yet. Be the first!'}
+                </p>
               ) : (
                 <>
-                  <div className="space-y-1 flex-1">
+                  <div className="space-y-1 flex-1 overflow-y-auto pr-1">
                     {leaderboard.map((entry, index) => {
-                      const rank = (leaderboardPage - 1) * 10 + index + 1;
+                      const rank = leaderboardMode === 'allTime'
+                        ? (leaderboardPage - 1) * 10 + index + 1
+                        : index + 1;
                       return (
                         <div
                           key={`${entry.timestamp}-${index}`}
@@ -649,7 +689,7 @@ const DodgeMySkills: React.FC = () => {
                       );
                     })}
                   </div>
-                  {totalLeaderboardEntries > 10 && (
+                  {leaderboardMode === 'allTime' && totalLeaderboardEntries > 10 && (
                     <div className="flex items-center justify-between mt-4 pt-4 border-t border-darkOlive/10 dark:border-offWhite/10">
                       <button
                         onClick={() => setLeaderboardPage(prev => Math.max(1, prev - 1))}
@@ -674,6 +714,7 @@ const DodgeMySkills: React.FC = () => {
                   )}
                 </>
               )}
+              </div>
             </div>
           </div>
         </div>

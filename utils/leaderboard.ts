@@ -105,6 +105,41 @@ export const getTopEntries = async (count: number = MAX_LEADERBOARD_ENTRIES): Pr
 };
 
 /**
+ * Get top N entries from leaderboard within the last N days
+ */
+export const getTopEntriesLastDays = async (
+  days: number = 7,
+  count: number = MAX_LEADERBOARD_ENTRIES
+): Promise<LeaderboardEntry[]> => {
+  if (!isSupabaseConfigured || !supabase) {
+    return [];
+  }
+
+  try {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - days);
+
+    const { data, error } = await supabase
+      .from('leaderboard')
+      .select('*')
+      .gte('timestamp', cutoffDate.toISOString())
+      .order('score', { ascending: false })
+      .order('timestamp', { ascending: true })
+      .limit(count);
+
+    if (error) {
+      console.error(`Error fetching top entries from last ${days} days:`, error);
+      return [];
+    }
+
+    return (data || []).map(dbToAppEntry);
+  } catch (error) {
+    console.error(`Error reading top entries from last ${days} days from Supabase:`, error);
+    return [];
+  }
+};
+
+/**
  * Get paginated leaderboard entries
  */
 export const getPaginatedEntries = async (
