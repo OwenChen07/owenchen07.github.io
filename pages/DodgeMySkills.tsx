@@ -35,6 +35,28 @@ const SPAWN_DECREASE_PER_SCORE = 5;     // Spawn interval decrease per displayed
 
 type LeaderboardMode = 'allTime' | 'last7Days';
 
+// Remember the player's initials between runs so they only type them once.
+// Wrapped in try/catch because localStorage throws rather than returning null
+// when storage is blocked (Safari private browsing, embedded contexts).
+const INITIALS_STORAGE_KEY = 'dodgeMySkills.initials';
+
+const readStoredInitials = (): string => {
+  try {
+    const stored = window.localStorage.getItem(INITIALS_STORAGE_KEY) ?? '';
+    return /^[A-Z]{2}$/.test(stored) ? stored : '';
+  } catch {
+    return '';
+  }
+};
+
+const writeStoredInitials = (initials: string): void => {
+  try {
+    window.localStorage.setItem(INITIALS_STORAGE_KEY, initials);
+  } catch {
+    // Storage unavailable — prefilling is a convenience, not a requirement.
+  }
+};
+
 const DodgeMySkills: React.FC = () => {
   const { isDark } = useDarkMode();
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -42,7 +64,7 @@ const DodgeMySkills: React.FC = () => {
   const [gameOver, setGameOver] = useState(false);
   const [gameStarted, setGameStarted] = useState(false);
   const [encounteredSkills, setEncounteredSkills] = useState<Set<string>>(new Set());
-  const [playerName, setPlayerName] = useState('');
+  const [playerName, setPlayerName] = useState(readStoredInitials);
   const [showNameInput, setShowNameInput] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -518,10 +540,12 @@ const DodgeMySkills: React.FC = () => {
       );
       // The token is single-use; drop it so a retry cannot double-submit.
       sessionIdRef.current = null;
+      // Remember these initials so the next run comes prefilled.
+      writeStoredInitials(initials);
       // Reload leaderboard after saving
       await loadLeaderboard();
       setShowNameInput(false);
-      setPlayerName('');
+      setPlayerName(initials);
     } catch (error) {
       console.error('Error saving leaderboard entry:', error);
       setSubmitError(error instanceof Error ? error.message : 'Could not save your score.');
@@ -532,7 +556,7 @@ const DodgeMySkills: React.FC = () => {
 
   const handleStartGame = () => {
     setShowNameInput(false);
-    setPlayerName('');
+    setPlayerName(readStoredInitials());
     setSubmitError(null);
     setSubmitting(false);
     startGame();
@@ -591,6 +615,9 @@ const DodgeMySkills: React.FC = () => {
                         }}
                         placeholder="AA"
                         maxLength={2}
+                        // Select the remembered initials on focus so typing
+                        // replaces them instead of being ignored by maxLength.
+                        onFocus={(e) => e.target.select()}
                         className="w-full px-3 sm:px-4 py-2 border border-darkOlive/20 dark:border-offWhite/20 bg-offWhite dark:bg-darkOlive text-darkOlive dark:text-offWhite mb-2 sm:mb-3 focus:outline-none focus:border-darkOlive/50 dark:focus:border-offWhite/50 text-center text-xl sm:text-2xl font-bold tracking-wider"
                         style={{ textTransform: 'uppercase' }}
                         autoFocus
