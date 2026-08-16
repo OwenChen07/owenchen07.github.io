@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import Layout from '../components/Layout';
 import { SKILLS, SKILL_LOGOS } from '../constants';
 import { Projectile, Player, LeaderboardEntry } from '../types';
-import { getPaginatedEntries, getTopEntriesLastDays, saveLeaderboardEntry, formatDate } from '../utils/leaderboard';
+import { getPaginatedEntries, getTopEntriesLastDays, saveLeaderboardEntry, startGameSession, formatDate } from '../utils/leaderboard';
 import { useDarkMode } from '../contexts/DarkModeContext';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
@@ -44,6 +44,8 @@ const DodgeMySkills: React.FC = () => {
   const [encounteredSkills, setEncounteredSkills] = useState<Set<string>>(new Set());
   const [playerName, setPlayerName] = useState('');
   const [showNameInput, setShowNameInput] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [loadingLeaderboard, setLoadingLeaderboard] = useState(true);
   const [leaderboardError, setLeaderboardError] = useState<string | null>(null);
@@ -69,6 +71,7 @@ const DodgeMySkills: React.FC = () => {
   const gameOverRef = useRef<boolean>(false);
   const scoreRef = useRef<number>(0); // Track score synchronously for use in game loop
   const imagesRef = useRef<Map<string, HTMLImageElement>>(new Map()); // Store loaded logo images
+  const sessionIdRef = useRef<string | null>(null); // Server-issued proof that this game was actually started
 
   const spawnProjectile = useCallback(() => {
     const side = Math.floor(Math.random() * 4); // 0: top, 1: right, 2: bottom, 3: left
@@ -413,6 +416,12 @@ const DodgeMySkills: React.FC = () => {
   }, []);
 
   const startGame = () => {
+    // Open a server-side session for this run. It is issued asynchronously and
+    // the game does not wait on it — the token is only needed at submit time,
+    // and its server-side created_at is what bounds the score this run can claim.
+    sessionIdRef.current = null;
+    startGameSession().then(id => { sessionIdRef.current = id; });
+
     gameOverRef.current = false;
     gameStartedRef.current = true;
     setGameOver(false);
@@ -490,28 +499,42 @@ const DodgeMySkills: React.FC = () => {
     e.preventDefault();
     // Validate: must be exactly 2 letters
     const initials = playerName.trim().toUpperCase();
-    if (initials.length === 2 && /^[A-Z]{2}$/.test(initials)) {
-      const displayScore = Math.floor(score / 10);
-      try {
-        await saveLeaderboardEntry({
+    if (initials.length !== 2 || !/^[A-Z]{2}$/.test(initials)) {
+      return;
+    }
+
+    const displayScore = Math.floor(score / 10);
+    setSubmitting(true);
+    setSubmitError(null);
+    try {
+      await saveLeaderboardEntry(
+        {
           name: initials,
           score: displayScore,
           timestamp: Date.now(),
           skillsEncountered: encounteredSkillsList,
-        });
-        // Reload leaderboard after saving
-        await loadLeaderboard();
-        setShowNameInput(false);
-        setPlayerName('');
-      } catch (error) {
-        console.error('Error saving leaderboard entry:', error);
-      }
+        },
+        sessionIdRef.current,
+      );
+      // The token is single-use; drop it so a retry cannot double-submit.
+      sessionIdRef.current = null;
+      // Reload leaderboard after saving
+      await loadLeaderboard();
+      setShowNameInput(false);
+      setPlayerName('');
+    } catch (error) {
+      console.error('Error saving leaderboard entry:', error);
+      setSubmitError(error instanceof Error ? error.message : 'Could not save your score.');
+    } finally {
+      setSubmitting(false);
     }
   };
 
   const handleStartGame = () => {
     setShowNameInput(false);
     setPlayerName('');
+    setSubmitError(null);
+    setSubmitting(false);
     startGame();
   };
 
@@ -574,11 +597,14 @@ const DodgeMySkills: React.FC = () => {
                       />
                       <button
                         type="submit"
-                        disabled={playerName.length !== 2}
+                        disabled={playerName.length !== 2 || submitting}
                         className="w-full px-4 sm:px-6 py-2 bg-darkOlive dark:bg-offWhite text-offWhite dark:text-darkOlive hover:bg-opacity-90 dark:hover:bg-opacity-90 transition-all uppercase tracking-[0.2em] text-[10px] sm:text-xs font-bold disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        Submit
+                        {submitting ? 'Saving...' : 'Submit'}
                       </button>
+                      {submitError && (
+                        <p className="mt-2 sm:mt-3 text-[10px] sm:text-xs opacity-70">{submitError}</p>
+                      )}
                     </form>
                   )}
                   

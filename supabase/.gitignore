@@ -1,0 +1,5 @@
+# Supabase CLI local state — never commit.
+# .temp holds the linked project ref and pooler connection URL.
+.branches
+.temp
+.env

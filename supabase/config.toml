@@ -1,0 +1,14 @@
+# Local project name, used to namespace containers during `supabase start`.
+# This is NOT the remote project ref — `supabase link` stores that separately,
+# in supabase/.temp/, so leave this as-is.
+project_id = "dodge-leaderboard"
+
+# Both functions are called with the public anon key as the bearer token, which
+# is what supabase-js sends automatically. Leaving verify_jwt on costs nothing
+# and filters out unauthenticated noise; it is not a security boundary, since
+# the anon key is public by design. The real checks live inside the functions.
+[functions.start-game]
+verify_jwt = true
+
+[functions.submit-score]
+verify_jwt = true

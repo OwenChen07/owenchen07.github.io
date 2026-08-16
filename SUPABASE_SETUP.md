@@ -1,15 +1,13 @@
 # Supabase Leaderboard Setup Guide
 
-## Step 1: Create the Database Table
+Scores are written only by the `submit-score` Edge Function, never by the
+browser. See [SECURITY.md](SECURITY.md) for why, and for the full threat model.
 
-In your Supabase dashboard (dodge_leaderboard project):
+## Step 1: Create the database table
 
-1. Go to **SQL Editor** in the left sidebar
-2. Click **New Query**
-3. Paste this SQL to create the table:
+If the table does not exist yet, run this in the Supabase SQL Editor:
 
 ```sql
--- Create leaderboard table
 CREATE TABLE leaderboard (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   name TEXT NOT NULL,
@@ -18,63 +16,114 @@ CREATE TABLE leaderboard (
   skills_encountered TEXT[] DEFAULT '{}' NOT NULL
 );
 
--- Create index on score for faster queries
 CREATE INDEX idx_leaderboard_score ON leaderboard(score DESC);
-
--- Enable Row Level Security (RLS)
-ALTER TABLE leaderboard ENABLE ROW LEVEL SECURITY;
-
--- Create policy to allow anyone to read leaderboard
-CREATE POLICY "Anyone can read leaderboard"
-  ON leaderboard FOR SELECT
-  TO anon, authenticated
-  USING (true);
-
--- Create policy to allow anyone to insert (for public leaderboard)
-CREATE POLICY "Anyone can insert into leaderboard"
-  ON leaderboard FOR INSERT
-  TO anon, authenticated
-  WITH CHECK (true);
 ```
 
-4. Click **Run** to execute the SQL
+Do **not** add RLS policies here — step 2 handles that.
 
-## Step 2: Get Your Supabase Credentials
+## Step 2: Apply the lockdown migration
 
-1. In Supabase dashboard, go to **Settings** → **API**
-2. Copy these values:
-   - **Project URL** (e.g., `https://xxxxx.supabase.co`)
-   - **anon/public key** (the `anon` key under "Project API keys")
+Run [`supabase/migrations/20260816000000_lockdown_leaderboard.sql`](supabase/migrations/20260816000000_lockdown_leaderboard.sql)
+in the SQL Editor (paste the whole file), or with the CLI:
 
-## Step 3: Install Supabase Client
-
-Run in your project directory:
 ```bash
-npm install @supabase/supabase-js
+supabase db push
 ```
 
-## Step 4: Set Up Environment Variables
+This creates the `game_sessions` table, drops every existing leaderboard policy
+and replaces them with read-only public access, revokes the client's write
+grants, and adds shape constraints. It is idempotent — safe to re-run.
 
-For local development:
-1. Create/update `.env.local` file in your project root
-2. Add:
+Sections 5 and 6 of the migration are commented out on purpose: section 5 is the
+cleanup for the injected row, which you should review before running.
+
+## Step 3: Deploy the Edge Functions
+
+The CLI does not need to be installed — `npx` fetches a prebuilt binary. Prefer
+this over `brew install supabase/tap/supabase`, which builds from source and
+fails if your Xcode Command Line Tools are out of date.
+
+```bash
+alias supabase="npx --yes supabase@latest"   # this shell session only
+
+supabase login
+supabase link --project-ref gtwlkxmezypafqferpow
+supabase functions deploy start-game
+supabase functions deploy submit-score
+```
+
+The project ref is the subdomain of your `VITE_SUPABASE_URL`. Note there are no
+angle brackets around it — zsh reads `<` as a redirect and errors out.
+
+Set the secrets — `CLIENT_HASH_SALT` matters, the rest have working defaults:
+
+```bash
+supabase secrets set \
+  CLIENT_HASH_SALT="$(openssl rand -hex 32)" \
+  ALLOWED_ORIGINS="https://owenchen07.github.io,http://localhost:3000"
+```
+
+The full list of tunable secrets is in [SECURITY.md](SECURITY.md#configuration).
+
+## Step 4: Credentials
+
+1. Supabase dashboard → **Settings** → **API**
+2. Copy the **Project URL** and the **anon/public key**
+
+The anon key is safe to expose — after step 2 it can only read the leaderboard.
+The **service role key must never** go into `.env` or the bundle; Edge Functions
+receive it automatically.
+
+## Step 5: Environment variables
+
+Local development — create `.env.local`:
+
 ```
 VITE_SUPABASE_URL=your_project_url_here
 VITE_SUPABASE_ANON_KEY=your_anon_key_here
 ```
 
-**Note:** The `VITE_` prefix is required for Vite to expose these to the client.
+The `VITE_` prefix is required for Vite to expose these to the client.
 
-For GitHub Pages:
-- These will need to be public (in the built code)
-- Add repository secrets so GitHub Actions can inject them at build time:
-  - `VITE_SUPABASE_URL`
-  - `VITE_SUPABASE_ANON_KEY`
-  - Path: GitHub repo -> Settings -> Secrets and variables -> Actions -> New repository secret
+For GitHub Pages, add the same two as repository secrets so the Actions build
+can inject them: repo → Settings → Secrets and variables → Actions → New
+repository secret.
 
-If these secrets are missing, the deployed site will show:
-"Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY at build time."
+If these are missing, the deployed site shows: "Supabase is not configured. Set
+VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY at build time."
 
-## Step 5: Code Changes
+## Step 6: Verify
 
-The code has been updated to use Supabase. After setting up the table and env vars, test locally first!
+Play a game and submit a score — it should appear on the board as before.
+
+Then confirm the hole is actually closed. This is the request that let someone
+inject a score; it must now fail:
+
+```bash
+curl -i -X POST "$VITE_SUPABASE_URL/rest/v1/leaderboard" \
+  -H "apikey: $VITE_SUPABASE_ANON_KEY" \
+  -H "Authorization: Bearer $VITE_SUPABASE_ANON_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"XX","score":999999,"skills_encountered":[]}'
+```
+
+Expect `401` or `403` with a permission-denied message. If it returns `201`,
+step 2 did not apply.
+
+Reads should still work:
+
+```bash
+curl -s "$VITE_SUPABASE_URL/rest/v1/leaderboard?select=name,score&limit=3" \
+  -H "apikey: $VITE_SUPABASE_ANON_KEY"
+```
+
+And a forged submission with no real session must be rejected:
+
+```bash
+curl -i -X POST "$VITE_SUPABASE_URL/functions/v1/submit-score" \
+  -H "Authorization: Bearer $VITE_SUPABASE_ANON_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"sessionId":"00000000-0000-4000-8000-000000000000","name":"XX","score":999999,"skillsEncountered":[]}'
+```
+
+Expect `403` — "This game session is no longer valid."

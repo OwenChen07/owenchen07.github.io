@@ -47,32 +47,86 @@ export const getLeaderboard = async (): Promise<LeaderboardEntry[]> => {
 };
 
 /**
- * Save a leaderboard entry to Supabase
- * Stores all entries in the database (no limit)
+ * Pull the error message out of a failed functions.invoke() call.
+ * supabase-js surfaces non-2xx responses as a FunctionsHttpError whose body
+ * has to be read off error.context, so the useful message is one await away.
  */
-export const saveLeaderboardEntry = async (entry: LeaderboardEntry): Promise<void> => {
+const readFunctionError = async (error: unknown, fallback: string): Promise<string> => {
+  const context = (error as { context?: Response })?.context;
+  if (context && typeof context.json === 'function') {
+    try {
+      const body = await context.json();
+      if (body && typeof body.error === 'string') {
+        return body.error;
+      }
+    } catch {
+      // Body was not JSON; fall through to the generic message.
+    }
+  }
+  return error instanceof Error ? error.message : fallback;
+};
+
+/**
+ * Open a server-side game session and return its id.
+ *
+ * The id is the proof-of-play token that saveLeaderboardEntry must present.
+ * Returns null if a session could not be opened, in which case the score
+ * simply cannot be submitted — the browser has no write access of its own.
+ */
+export const startGameSession = async (): Promise<string | null> => {
   if (!isSupabaseConfigured || !supabase) {
-    return;
+    return null;
   }
 
   try {
-    // Insert the new entry (no cleanup - store all entries)
-    const { error } = await supabase
-      .from('leaderboard')
-      .insert({
-        name: entry.name,
-        score: entry.score,
-        timestamp: new Date(entry.timestamp).toISOString(),
-        skills_encountered: entry.skillsEncountered,
-      });
+    const { data, error } = await supabase.functions.invoke('start-game', {
+      body: {},
+    });
 
     if (error) {
-      console.error('Error saving leaderboard entry:', error);
-      throw error;
+      console.error('Error starting game session:', await readFunctionError(error, 'Unknown error'));
+      return null;
     }
+
+    return typeof data?.sessionId === 'string' ? data.sessionId : null;
   } catch (error) {
-    console.error('Error saving leaderboard entry:', error);
-    throw error;
+    console.error('Error starting game session:', error);
+    return null;
+  }
+};
+
+/**
+ * Submit a leaderboard entry through the submit-score Edge Function.
+ *
+ * The browser holds no insert privilege on the leaderboard table, so this is
+ * the only way a score can be written. The server validates the session and
+ * stamps the row's timestamp itself; entry.timestamp is not sent.
+ */
+export const saveLeaderboardEntry = async (
+  entry: LeaderboardEntry,
+  sessionId: string | null,
+): Promise<void> => {
+  if (!isSupabaseConfigured || !supabase) {
+    throw new Error('Leaderboard is not configured.');
+  }
+
+  if (!sessionId) {
+    throw new Error('This game could not be verified, so the score cannot be saved.');
+  }
+
+  const { error } = await supabase.functions.invoke('submit-score', {
+    body: {
+      sessionId,
+      name: entry.name,
+      score: entry.score,
+      skillsEncountered: entry.skillsEncountered,
+    },
+  });
+
+  if (error) {
+    const message = await readFunctionError(error, 'Could not save your score.');
+    console.error('Error saving leaderboard entry:', message);
+    throw new Error(message);
   }
 };
 
