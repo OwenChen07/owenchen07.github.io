@@ -103,7 +103,7 @@ Set these as Edge Function secrets (Dashboard → Edge Functions → Secrets, or
 | Secret | Default | Purpose |
 | --- | --- | --- |
 | `CLIENT_HASH_SALT` | `unsalted` | Salt for the IP hash. **Set this** to any long random string. |
-| `ALLOWED_ORIGINS` | `*` | Comma-separated origin allowlist for CORS, e.g. `https://owenchen07.github.io,http://localhost:3000`. |
+| `ALLOWED_ORIGINS` | `*` | Comma-separated origin allowlist for CORS, e.g. `https://owenchen07.me,http://localhost:3000`. |
 | `MAX_SCORE` | `50000` | Absolute score ceiling. |
 | `MAX_POINTS_PER_SECOND` | `26` | Fastest legitimate score accrual. See the refresh-rate note above before lowering. |
 | `TIMING_SLACK_SECONDS` | `3` | Tolerance for network latency and clock skew. |

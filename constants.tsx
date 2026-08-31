@@ -1,23 +1,29 @@
 
 import React from 'react';
-import { 
-  Code2, 
-  Database, 
-  Globe, 
-  Layers, 
-  Cpu, 
-  Zap, 
-  Server, 
-  Smartphone,
-  Framer,
+import {
+  Code2,
+  Database,
+  Layers,
+  Server,
   Wind,
   FileCode,
   Terminal,
-  Brackets,
   Code,
   FileText,
   GitBranch,
-  Wand2
+  Wand2,
+  Braces,
+  Share2,
+  Container,
+  Box,
+  Ship,
+  Cloud,
+  Plug,
+  GitMerge,
+  Bot,
+  Flame,
+  Sigma,
+  Sparkles
 } from 'lucide-react';
 import { Project, Skill } from './types';
 
@@ -75,38 +81,123 @@ export const PROJECTS: Project[] = PROJECT_LIST.map((project, index) => ({
   ...project,
 }));
 
+// ---------------------------------------------------------------------------
+// Skills
+// ---------------------------------------------------------------------------
+// Every entry here becomes a projectile in Dodge My Skills. Two things must be
+// kept in sync when this list changes:
+//
+//   1. SKILL_NAMES in supabase/functions/_shared/rules.ts. The submit-score
+//      function silently drops any skill name it does not recognise, so a name
+//      that is missing there just vanishes from the saved run.
+//   2. The leaderboard_skills_len check constraint (currently 32). A long game
+//      encounters every skill, so the stored array grows to the length of this
+//      list.
+
 export const SKILLS: Skill[] = [
+  // Languages
   { name: 'Python', icon: <Code2 size={24} /> },
   { name: 'C', icon: <FileCode size={24} /> },
   { name: 'C++', icon: <FileCode size={24} /> },
+  { name: 'TypeScript', icon: <Braces size={24} /> },
   { name: 'JS', icon: <Code size={24} /> },
   { name: 'HTML', icon: <FileText size={24} /> },
   { name: 'CSS', icon: <FileText size={24} /> },
   { name: 'SQL', icon: <Database size={24} /> },
   { name: 'PHP', icon: <Server size={24} /> },
+  // Technologies
   { name: 'React', icon: <Code2 size={24} /> },
+  { name: 'Express', icon: <Server size={24} /> },
+  { name: 'GraphQL', icon: <Share2 size={24} /> },
   { name: 'Flask', icon: <Layers size={24} /> },
   { name: 'Laravel', icon: <Server size={24} /> },
   { name: 'Tailwind', icon: <Wind size={24} /> },
+  { name: 'Docker', icon: <Container size={24} /> },
+  { name: 'Podman', icon: <Box size={24} /> },
+  { name: 'Kubernetes', icon: <Ship size={24} /> },
+  { name: 'OpenStack', icon: <Cloud size={24} /> },
+  { name: 'MCP', icon: <Plug size={24} /> },
+  // Libraries and tools
   { name: 'Git', icon: <GitBranch size={24} /> },
+  { name: 'GitLab', icon: <GitMerge size={24} /> },
+  { name: 'Robot Framework', icon: <Bot size={24} /> },
+  { name: 'Sequelize', icon: <Database size={24} /> },
+  { name: 'PyTorch', icon: <Flame size={24} /> },
+  { name: 'NumPy', icon: <Sigma size={24} /> },
+  { name: 'OpenAI', icon: <Sparkles size={24} /> },
   { name: 'Cursor', icon: <Wand2 size={24} /> },
+  { name: 'Claude Code', icon: <Terminal size={24} /> },
 ];
 
-// Logo URLs for canvas rendering (using simple-icons CDN)
-// Format: https://cdn.simpleicons.org/{icon-name}/{color-hex}
-export const SKILL_LOGOS: { [key: string]: string } = {
-  'Python': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRFCHi18uXFtRb1_q7pQIVxYlwqvhVzCzZ4PQ&s',
-  'C': 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/18/C_Programming_Language.svg/960px-C_Programming_Language.svg.png',
-  'C++': 'https://cdn.simpleicons.org/cplusplus/00599C',
-  'JS': 'https://cdn.simpleicons.org/javascript/F7DF1E',
-  'HTML': 'https://cdn.simpleicons.org/html5/E34F26',
-  'CSS': 'https://cdn.simpleicons.org/css/1572B6',
-  'SQL': 'https://cdn-icons-png.flaticon.com/512/4299/4299956.png',
-  'PHP': 'https://cdn.simpleicons.org/php/777BB4',
-  'React': 'https://cdn.simpleicons.org/react/61DAFB',
-  'Flask': 'https://cdn.simpleicons.org/flask/000000',
-  'Laravel': 'https://cdn.simpleicons.org/laravel/FF2D20',
-  'Tailwind': 'https://cdn.simpleicons.org/tailwindcss/06B6D4',
-  'Git': 'https://cdn.simpleicons.org/git/F05032',
-  'Cursor': 'https://cdn.simpleicons.org/cursor/000000',
+// ---------------------------------------------------------------------------
+// Logos drawn onto the game canvas
+// ---------------------------------------------------------------------------
+// Each skill carries a colour per theme, because the canvas background flips
+// between offWhite (#FDFAF5) and darkOlive (#52543E). Using one colour for both
+// makes roughly a third of these unreadable: brands whose official colour is
+// black (Flask, Express, MCP, Robot Framework, Cursor, OpenAI) disappear on the
+// dark canvas, and pale brands (JS yellow, React cyan) wash out on the light
+// one. Where the official colour is already legible on a background it is used
+// unchanged; otherwise it is lightened or darkened just enough to read.
+
+export interface SkillLogo {
+  light: string;
+  dark: string;
+}
+
+// https://cdn.simpleicons.org/{slug}/{hex} renders the brand mark in any colour.
+const icon = (slug: string, light: string, dark: string): SkillLogo => ({
+  light: `https://cdn.simpleicons.org/${slug}/${light}`,
+  dark: `https://cdn.simpleicons.org/${slug}/${dark}`,
+});
+
+// simple-icons dropped its OpenAI mark, so this one comes from Iconify's
+// mirror. The explicit width matters: Iconify defaults to `em` units, which
+// give the SVG no intrinsic pixel size and make canvas drawImage a no-op.
+const iconify = (name: string, light: string, dark: string): SkillLogo => ({
+  light: `https://api.iconify.design/${name}.svg?color=%23${light}&width=128&height=128`,
+  dark: `https://api.iconify.design/${name}.svg?color=%23${dark}&width=128&height=128`,
+});
+
+export const SKILL_LOGOS: { [key: string]: SkillLogo } = {
+  // Languages
+  'Python': icon('python', '3776AB', '6BA9DE'),
+  'C': icon('c', '5C7A99', 'A8B9CC'),
+  'C++': icon('cplusplus', '00599C', '4FA3DB'),
+  'TypeScript': icon('typescript', '3178C6', '6BA9E8'),
+  'JS': icon('javascript', 'C4A700', 'F7DF1E'),
+  'HTML': icon('html5', 'E34F26', 'F2704A'),
+  'CSS': icon('css', '1572B6', '5AA9E6'),
+  'PHP': icon('php', '6C70A8', '9FA4D8'),
+  // Technologies
+  'React': icon('react', '1BA5C9', '61DAFB'),
+  'Express': icon('express', '0A0A0A', 'E6E6E6'),
+  'GraphQL': icon('graphql', 'E10098', 'F45BC0'),
+  'Flask': icon('flask', '000000', 'E6E6E6'),
+  'Laravel': icon('laravel', 'FF2D20', 'FF6A5E'),
+  'Tailwind': icon('tailwindcss', '0891B2', '22D3EE'),
+  'Docker': icon('docker', '2496ED', '5BB1F2'),
+  'Podman': icon('podman', '892CA0', 'BE72D4'),
+  'Kubernetes': icon('kubernetes', '326CE5', '6E9BF0'),
+  'OpenStack': icon('openstack', 'ED1944', 'F4586F'),
+  'MCP': icon('modelcontextprotocol', '000000', 'E6E6E6'),
+  // Libraries and tools
+  'Git': icon('git', 'F05032', 'F4795F'),
+  'GitLab': icon('gitlab', 'FC6D26', 'FD9159'),
+  'Robot Framework': icon('robotframework', '000000', 'E6E6E6'),
+  'Sequelize': icon('sequelize', '2A8BC4', '7AC6EF'),
+  'PyTorch': icon('pytorch', 'EE4C2C', 'F4785C'),
+  'NumPy': icon('numpy', '013243', '7FB6C9'),
+  'OpenAI': iconify('simple-icons:openai', '000000', 'E6E6E6'),
+  'Cursor': icon('cursor', '000000', 'E6E6E6'),
+  'Claude Code': icon('claudecode', 'D97757', 'E89A80'),
+  // SQL has no brand mark of its own; this is a generic database glyph, and is
+  // the one logo here that cannot be recoloured per theme.
+  'SQL': {
+    light: 'https://cdn-icons-png.flaticon.com/512/4299/4299956.png',
+    dark: 'https://cdn-icons-png.flaticon.com/512/4299/4299956.png',
+  },
 };
+
+export const getSkillLogo = (name: string, isDark: boolean): string | undefined =>
+  SKILL_LOGOS[name]?.[isDark ? 'dark' : 'light'];

@@ -60,8 +60,25 @@ Set the secrets — `CLIENT_HASH_SALT` matters, the rest have working defaults:
 ```bash
 supabase secrets set \
   CLIENT_HASH_SALT="$(openssl rand -hex 32)" \
-  ALLOWED_ORIGINS="https://owenchen07.github.io,http://localhost:3000"
+  ALLOWED_ORIGINS="https://owenchen07.me,https://www.owenchen07.me,https://owenchen07.github.io,http://localhost:3000"
 ```
+
+`ALLOWED_ORIGINS` must list the origin the **browser** actually sees. The site
+is served from the custom domain `owenchen07.me`; `owenchen07.github.io` only
+301-redirects to it, so the `Origin` header is always the custom domain. Listing
+just the `github.io` host blocks every call from your own site with a CORS
+failure, which surfaces in the game as "This game could not be verified, so the
+score cannot be saved."
+
+To check what a browser would be told:
+
+```bash
+curl -s -i -X OPTIONS "$VITE_SUPABASE_URL/functions/v1/start-game" \
+  -H "Origin: https://owenchen07.me" \
+  -H "Access-Control-Request-Method: POST" | grep -i access-control-allow-origin
+```
+
+The value must equal the origin you sent, exactly.
 
 The full list of tunable secrets is in [SECURITY.md](SECURITY.md#configuration).
 

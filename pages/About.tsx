@@ -15,12 +15,12 @@ const About: React.FC = () => {
         <div className="flex justify-center px-4"> 
           <div className="max-w-2xl text-center space-y-4 sm:space-y-6 text-xl sm:text-2xl md:text-3xl leading-relaxed font-light">
             <p>
-              Hi I'm Owen, a first year CS student at the <span className="font-bold">University of Waterloo</span>. I'm passionate about software development and machine learning.
+              Hi I'm Owen, a first year CS student at the <span className="font-bold">University of Waterloo</span>. I'm passionate about software engineering and machine learning.
             </p>
             <br></br>
-            <p>
-              When I'm not coding, you'll find me playing volleyball, poker or video games.
-            </p>
+            {/* <p>
+              When I'm not coding, you'll find me playing volleyball or video games.
+            </p> */}
           </div>
         </div>
       </div>

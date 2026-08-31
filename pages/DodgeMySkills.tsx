@@ -1,7 +1,7 @@
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import Layout from '../components/Layout';
-import { SKILLS, SKILL_LOGOS } from '../constants';
+import { SKILLS, getSkillLogo } from '../constants';
 import { Projectile, Player, LeaderboardEntry } from '../types';
 import { getPaginatedEntries, getTopEntriesLastDays, saveLeaderboardEntry, startGameSession, formatDate } from '../utils/leaderboard';
 import { useDarkMode } from '../contexts/DarkModeContext';
@@ -326,46 +326,41 @@ const DodgeMySkills: React.FC = () => {
     });
   };
 
-  // Load logo images on component mount
+  // Load logo images. Re-runs when the theme flips, because each skill has a
+  // separate light and dark URL — the colour is baked into the request, so the
+  // images have to be refetched rather than restyled.
   useEffect(() => {
-    // Clear existing images to force reload
+    let cancelled = false;
     imagesRef.current.clear();
-    
-    const loadImages = () => {
-      SKILLS.forEach(skill => {
-        const logoUrl = SKILL_LOGOS[skill.name];
-        if (logoUrl) {
-          // Try loading with crossOrigin first (for CORS-enabled sources)
-          const img = new Image();
-          
-          // Some external sites like Wikimedia Commons support CORS, others don't
-          // We'll try with crossOrigin first, then fallback if it fails
-          const tryLoadWithCORS = () => {
-            img.crossOrigin = 'anonymous';
-            img.onload = () => {
-              imagesRef.current.set(skill.name, img);
-            };
-            img.onerror = () => {
-              // If CORS fails, try without crossOrigin (works for same-origin or no-CORS images)
-              const imgNoCORS = new Image();
-              imgNoCORS.onload = () => {
-                imagesRef.current.set(skill.name, imgNoCORS);
-              };
-              imgNoCORS.onerror = () => {
-                console.warn(`Failed to load logo for ${skill.name} from ${logoUrl}`);
-              };
-              // Remove crossOrigin attribute for retry
-              imgNoCORS.src = logoUrl;
-            };
-            img.src = logoUrl;
-          };
-          
-          tryLoadWithCORS();
-        }
-      });
-    };
-    loadImages();
-  }, []); // Load once on mount - if you change URLs, refresh the page or remount component
+
+    SKILLS.forEach(skill => {
+      const logoUrl = getSkillLogo(skill.name, isDark);
+      if (!logoUrl) return;
+
+      const store = (img: HTMLImageElement) => {
+        // A theme flip mid-flight would otherwise let the previous theme's
+        // image land in the map after the new one.
+        if (!cancelled) imagesRef.current.set(skill.name, img);
+      };
+
+      // Try with crossOrigin first (CORS-enabled hosts), then fall back to a
+      // plain load. Only drawImage is used, so a tainted canvas is harmless.
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => store(img);
+      img.onerror = () => {
+        const imgNoCORS = new Image();
+        imgNoCORS.onload = () => store(imgNoCORS);
+        imgNoCORS.onerror = () => {
+          console.warn(`Failed to load logo for ${skill.name} from ${logoUrl}`);
+        };
+        imgNoCORS.src = logoUrl;
+      };
+      img.src = logoUrl;
+    });
+
+    return () => { cancelled = true; };
+  }, [isDark]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
